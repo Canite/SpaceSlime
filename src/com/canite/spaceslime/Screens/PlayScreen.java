@@ -15,8 +15,8 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.canite.spaceslime.SpaceSlime;
-import com.canite.spaceslime.Sprites.MapSprite;
 import com.canite.spaceslime.Tools.LevelCreator;
+import com.canite.spaceslime.World.World;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +28,7 @@ public class PlayScreen implements Screen, InputProcessor{
     // Game and textures
     private SpaceSlime game;
     private TextureAtlas atlas;
+    private World world;
 
     // Cameras
     private OrthographicCamera gameCam;
@@ -40,7 +41,6 @@ public class PlayScreen implements Screen, InputProcessor{
 
     // Map Properties
     public int mapWidth, mapHeight, tileWidth, tileHeight, mapPixelWidth, mapPixelHeight;
-    public Array<MapSprite> mapSprites = new Array<MapSprite>();
 
     // Class for each touchscreen "Touch" to allow multitouch support
     public class TouchInfo {
@@ -79,12 +79,16 @@ public class PlayScreen implements Screen, InputProcessor{
         mapPixelWidth = mapWidth * tileWidth;
         mapPixelHeight = mapHeight * tileHeight;
 
+        // Create the world and fill it with all the map objects
+        world = new World(mapPixelWidth, mapPixelHeight);
+        new LevelCreator(map, this, world);
+
         renderer = new OrthogonalTiledMapRenderer(map, 1 / SpaceSlime.PPM);
 
         //gameCam.position.set(gamePort.getWorldWidth()/2, gamePort.getWorldHeight()/2, 0);
         gameCam.position.set(mapPixelWidth/2, mapPixelHeight/2, 0);
 
-        new LevelCreator(map, this);
+        new LevelCreator(map, this, world);
 
         Gdx.input.setInputProcessor(this);
 
@@ -143,10 +147,7 @@ public class PlayScreen implements Screen, InputProcessor{
     }
 
     public void update(float dt) {
-
-        for (int i = 0; i < mapSprites.size; i++) {
-            mapSprites.get(i).update(dt);
-        }
+        world.update(dt);
 
         gameCam.update();
 
@@ -159,14 +160,13 @@ public class PlayScreen implements Screen, InputProcessor{
         Gdx.gl.glClearColor(0,0,0,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // Draw the tiles
         renderer.render();
 
+        // Draw the objects
         game.batch.setProjectionMatrix(gameCam.combined);
         game.batch.begin();
-        for (int i = 0; i < mapSprites.size; i++) {
-            //mapSprites.get(i).draw(game.batch);
-        }
-        // guy.draw(game.batch);
+        world.draw(game.batch);
         game.batch.end();
 
         // set again for hud
@@ -195,6 +195,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public void dispose() {
+        world.dispose();
         map.dispose();
         renderer.dispose();
     }

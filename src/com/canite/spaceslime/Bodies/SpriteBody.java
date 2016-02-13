@@ -7,7 +7,7 @@ import com.badlogic.gdx.math.Rectangle;
  */
 public class SpriteBody {
     public Rectangle colBox;
-    public SpriteBody(int x, int y, int w, int h) {
-        colBox = new Rectangle(x,y,w,h);
+    public SpriteBody(Rectangle rect) {
+        colBox = rect;
     }
 }

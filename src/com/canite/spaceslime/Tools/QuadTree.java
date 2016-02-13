@@ -3,6 +3,7 @@ package com.canite.spaceslime.Tools;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
+import com.canite.spaceslime.Sprites.Collidable;
 
 /**
  * Created by austin on 2/8/16.
@@ -12,7 +13,7 @@ public class QuadTree {
     private int MAX_LEVEL = 5;
 
     private int level;
-    private Array<Sprite> objects;
+    private Array<Collidable> objects;
     private Rectangle bounds;
     private QuadTree[] nodes;
 
@@ -20,7 +21,7 @@ public class QuadTree {
         this.level = level;
         this.bounds = bounds;
 
-        objects = new Array<Sprite>();
+        objects = new Array<Collidable>();
         nodes = new QuadTree[4];
     }
 
@@ -54,6 +55,62 @@ public class QuadTree {
         double vertMidpoint = bounds.getX() + (bounds.getWidth() / 2);
         double horiMidpoint = bounds.getY() + (bounds.getHeight() / 2);
 
-        boolean topQuad = (rect.getX())
+        boolean topQuad = (rect.getY() + rect.getHeight() < horiMidpoint);
+        boolean botQuad = (rect.getY() > horiMidpoint);
+        boolean leftQuad = (rect.getX() + rect.getWidth() < vertMidpoint);
+        boolean rightQuad = (rect.getX() > vertMidpoint);
+
+        /* ____________
+           |     |     |
+           | II  |  I  |
+           |_____|_____|
+           |     |     |
+           | III |  IV |
+           |_____|_____|
+         */
+        if (topQuad && rightQuad) { index = 0; }
+        else if (topQuad && leftQuad) { index = 1; }
+        else if (botQuad && leftQuad) { index = 2; }
+        else if (botQuad && rightQuad) { index = 3; }
+
+        return index;
+    }
+
+    public void insert(Collidable sp) {
+        Rectangle spBounds = sp.getBoundingRectangle();
+        if (nodes[0] != null) {
+            int index = getIndex(spBounds);
+            if (index != -1) {
+                nodes[index].insert(sp);
+                return;
+            }
+        }
+
+        objects.add(sp);
+        if (objects.size > MAX_OBJECTS && level < MAX_LEVEL) {
+            if (nodes[0] == null) {
+                split();
+            }
+
+            int i = 0;
+            while (i < objects.size) {
+                int index = getIndex(objects.get(i).getBoundingRectangle());
+                if (index != -1) {
+                    nodes[index].insert(objects.removeIndex(i));
+                } else {
+                    i++;
+                }
+            }
+        }
+    }
+
+    public Array<Collidable> retrieve(Array<Collidable> collidingObjects, Rectangle rect) {
+        int index = getIndex(rect);
+        if (index != -1 && nodes[0] != null) {
+            nodes[index].retrieve(collidingObjects, rect);
+        }
+
+        collidingObjects.addAll(objects);
+        return collidingObjects;
     }
 }
