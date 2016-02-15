@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
@@ -95,6 +96,18 @@ public class PlayScreen implements Screen, InputProcessor{
         for (int i = 0; i < 3; i++) {
             touches.put(i, new TouchInfo());
         }
+    }
+
+    public TextureAtlas getAtlas() { return atlas; }
+
+    public static void fixBleeding(TextureRegion region) {
+        float x = region.getRegionX();
+        float y = region.getRegionY();
+        float width = region.getRegionWidth();
+        float height = region.getRegionHeight();
+        float invTexWidth = 1f / region.getTexture().getWidth();
+        float invTexHeight = 1f / region.getTexture().getHeight();
+        region.setRegion((x + 1.0f) * invTexWidth, (y + 1.0f) * invTexHeight, (x + width - 1.0f) * invTexWidth, (y + height - 1.0f) * invTexHeight);
     }
 
     @Override

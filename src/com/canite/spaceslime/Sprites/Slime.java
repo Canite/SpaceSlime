@@ -28,9 +28,16 @@ public class Slime extends Collidable {
         this.screen = screen;
         setX(startX);
         setY(startY);
+        xVel = 0;
+        yVel = 0;
+        xAccel = 0;
+        yAccel = 0;
 
         vertBody = new SpriteBody(new Rectangle(getX() + getWidth() / 4, getY(), getWidth() / 2, getHeight()));
         horiBody = new SpriteBody(new Rectangle(getX(), getY() + getHeight() / 4, getWidth(), getHeight() / 2));
+
+        /* Initialize sprites */
+
     }
 
     @Override

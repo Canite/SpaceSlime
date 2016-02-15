@@ -31,7 +31,7 @@ public class World {
         dynamicObjectTree = new QuadTree(0, worldBounds);
     }
 
-    private void applyPhysics(Sprite obj, float dt) {
+    private void applyPhysics(GameObject obj, float dt) {
 
     }
 

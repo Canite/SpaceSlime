@@ -1,6 +1,5 @@
 package com.canite.spaceslime.Sprites;
 
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
 import com.canite.spaceslime.Bodies.SpriteBody;
 import com.canite.spaceslime.Types.ColBody;

@@ -6,6 +6,7 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.math.Rectangle;
 import com.canite.spaceslime.Screens.PlayScreen;
 import com.canite.spaceslime.Sprites.Ground;
+import com.canite.spaceslime.Sprites.Slime;
 import com.canite.spaceslime.World.World;
 
 /**
@@ -13,6 +14,11 @@ import com.canite.spaceslime.World.World;
  */
 public class LevelCreator {
     public LevelCreator(TiledMap map, PlayScreen screen, World world) {
+        for (MapObject object: map.getLayers().get("player").getObjects().getByType(RectangleMapObject.class)) {
+            Rectangle rect = ((RectangleMapObject) object).getRectangle();
+            world.insertDynamic(new Slime(world, screen, (int)rect.getX(), (int)rect.getY()));
+        }
+
         for (MapObject object: map.getLayers().get("ground").getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rect = ((RectangleMapObject) object).getRectangle();
             world.insertStatic(new Ground(rect));
