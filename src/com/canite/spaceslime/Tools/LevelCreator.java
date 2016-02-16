@@ -1,5 +1,6 @@
 package com.canite.spaceslime.Tools;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -16,11 +17,15 @@ public class LevelCreator {
     public LevelCreator(TiledMap map, PlayScreen screen, World world) {
         for (MapObject object: map.getLayers().get("player").getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rect = ((RectangleMapObject) object).getRectangle();
-            world.insertDynamic(new Slime(world, screen, (int)rect.getX(), (int)rect.getY()));
+            Gdx.app.log("creator", Float.toString(rect.getX()) + " " + Float.toString(rect.getY()));
+            Slime player = new Slime(world, screen, (int)rect.getX(), (int)rect.getY());
+            world.insertDynamic(player);
+            world.player = player;
         }
 
         for (MapObject object: map.getLayers().get("ground").getObjects().getByType(RectangleMapObject.class)) {
             Rectangle rect = ((RectangleMapObject) object).getRectangle();
+            Gdx.app.log("creator", Float.toString(rect.getX()) + " " + Float.toString(rect.getY()));
             world.insertStatic(new Ground(rect));
         }
     }

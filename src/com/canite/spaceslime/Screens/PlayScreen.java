@@ -1,6 +1,7 @@
 package com.canite.spaceslime.Screens;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
@@ -8,10 +9,12 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.MapProperties;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -54,6 +57,9 @@ public class PlayScreen implements Screen, InputProcessor{
     // Hash table for each touch
     private Map<Integer, TouchInfo> touches = new HashMap<Integer, TouchInfo>();
 
+    // Debug renderer
+    ShapeRenderer debug;
+
     public PlayScreen(SpaceSlime game) {
         Gdx.app.log("started", "play screen");
 
@@ -61,6 +67,8 @@ public class PlayScreen implements Screen, InputProcessor{
         gameCam = new OrthographicCamera();
         gamePort = new FitViewport(SpaceSlime.V_WIDTH / SpaceSlime.PPM, SpaceSlime.V_HEIGHT / SpaceSlime.PPM, gameCam);
         atlas = new TextureAtlas("SSpack.atlas");
+
+        debug = new ShapeRenderer();
 
         // hud goes here
 
@@ -89,8 +97,6 @@ public class PlayScreen implements Screen, InputProcessor{
         //gameCam.position.set(gamePort.getWorldWidth()/2, gamePort.getWorldHeight()/2, 0);
         gameCam.position.set(mapPixelWidth/2, mapPixelHeight/2, 0);
 
-        new LevelCreator(map, this, world);
-
         Gdx.input.setInputProcessor(this);
 
         for (int i = 0; i < 3; i++) {
@@ -112,12 +118,34 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean keyDown(int keycode) {
-        return false;
+        switch(keycode) {
+            case Input.Keys.A:
+                world.player.move(-15.0f);
+                break;
+            case Input.Keys.D:
+                world.player.move(15.0f);
+                break;
+            case Input.Keys.W:
+                world.player.jump();
+            default:
+                break;
+        }
+        return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        return false;
+        switch(keycode) {
+            case Input.Keys.A:
+                world.player.stop();
+                break;
+            case Input.Keys.D:
+                world.player.stop();
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 
     @Override
@@ -162,6 +190,9 @@ public class PlayScreen implements Screen, InputProcessor{
     public void update(float dt) {
         world.update(dt);
 
+        /* Center camera on player */
+        gameCam.position.x = world.player.getX();
+        gameCam.position.y = world.player.getY();
         gameCam.update();
 
         renderer.setView(gameCam);
@@ -170,7 +201,7 @@ public class PlayScreen implements Screen, InputProcessor{
     @Override
     public void render(float delta) {
         update(delta);
-        Gdx.gl.glClearColor(0,0,0,1);
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Draw the tiles
@@ -181,6 +212,16 @@ public class PlayScreen implements Screen, InputProcessor{
         game.batch.begin();
         world.draw(game.batch);
         game.batch.end();
+
+        // debug
+        debug.setProjectionMatrix(gameCam.combined);
+        debug.begin(ShapeRenderer.ShapeType.Filled);
+        debug.setColor(0, 1, 0, 1);
+        Rectangle debugBox = world.player.horiBody.colBox;
+        debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        debugBox = world.player.vertBody.colBox;
+        debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        debug.end();
 
         // set again for hud
         //game.batch.setProjectionMatrix();

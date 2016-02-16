@@ -1,5 +1,6 @@
 package com.canite.spaceslime.Sprites;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Rectangle;
 import com.canite.spaceslime.Bodies.SpriteBody;
 import com.canite.spaceslime.Types.ColBody;
@@ -9,7 +10,8 @@ import com.canite.spaceslime.Types.ColBody;
  */
 public class Ground extends Collidable {
     public Ground(Rectangle bounds) {
-        vertBody = new SpriteBody(bounds);
+        setBounds(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
+        vertBody = new SpriteBody(bounds, 0, 0);
         horiBody = vertBody;
     }
 

@@ -1,5 +1,6 @@
 package com.canite.spaceslime.World;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
@@ -7,6 +8,7 @@ import com.badlogic.gdx.utils.Array;
 import com.canite.spaceslime.SpaceSlime;
 import com.canite.spaceslime.Sprites.Collidable;
 import com.canite.spaceslime.Sprites.GameObject;
+import com.canite.spaceslime.Sprites.Slime;
 import com.canite.spaceslime.Tools.QuadTree;
 import com.canite.spaceslime.Types.ColBody;
 
@@ -21,7 +23,9 @@ public class World {
     private QuadTree dynamicObjectTree;
     private Rectangle worldBounds;
 
-    private float gravity = 9.8f / SpaceSlime.PPM;
+    private float gravity = -12.0f / SpaceSlime.PPM;
+
+    public Slime player;
 
     public World(int width, int height) {
         worldBounds = new Rectangle(0, 0, width, height);
@@ -32,7 +36,16 @@ public class World {
     }
 
     private void applyPhysics(GameObject obj, float dt) {
+        /* Apply velocity to objects position */
+        obj.setX(obj.getX() + (obj.xVel * dt));
+        obj.setY(obj.getY() + (obj.yVel * dt));
 
+        /* Update velocity based on acceleration */
+        obj.xVel += obj.xAccel;
+        obj.yVel += obj.yAccel;
+
+        /* Apply gravity */
+        obj.yAccel = gravity;
     }
 
     private boolean colliding(Rectangle rect1, Rectangle rect2) { return rect1.overlaps(rect2); }
@@ -44,6 +57,7 @@ public class World {
         Rectangle horiRect = obj.horiBody.colBox;
         Rectangle vertRect = obj.vertBody.colBox;
 
+        //player.printStats();
         /* Assume all objects in quad trees are collidable (they are) */
         statColObjs = staticObjectTree.retrieve(statColObjs, rect);
         dynColObjs = dynamicObjectTree.retrieve(dynColObjs, rect);
@@ -51,11 +65,13 @@ public class World {
         for (Collidable colObj : statColObjs) {
             Rectangle horiColRect = colObj.horiBody.colBox;
             Rectangle vertColRect = colObj.vertBody.colBox;
+            //Gdx.app.log("world", Float.toString(vertColRect.x) + " " + Float.toString(vertColRect.y));
             if (colliding(horiRect, horiColRect) || colliding(horiRect, vertColRect)) {
                 obj.collide(ColBody.HORIZONTAL, colObj);
             }
-            else if (colliding(vertRect, horiColRect) || colliding(vertRect, vertColRect)) {
+            if (colliding(vertRect, horiColRect) || colliding(vertRect, vertColRect)) {
                 obj.collide(ColBody.VERTICAL, colObj);
+                Gdx.app.log("world", "collision");
             }
         }
 
@@ -95,7 +111,9 @@ public class World {
         /* First, apply physics to each object and regenerate the collision tree */
         for (GameObject obj : dynamicObjects) {
             applyPhysics(obj, dt);
+            obj.update(dt);
             if (obj instanceof Collidable) {
+                ((Collidable) obj).updateColBox();
                 dynamicObjectTree.insert((Collidable) obj);
             }
         }
@@ -108,9 +126,8 @@ public class World {
         }
 
         /* Then update each (dynamic) object */
-        for (GameObject obj : dynamicObjects) {
-            obj.update(dt);
-        }
+        //for (GameObject obj : dynamicObjects) {
+        //}
     }
 
     public void draw(Batch batch) {

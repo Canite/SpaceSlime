@@ -7,7 +7,12 @@ import com.badlogic.gdx.math.Rectangle;
  */
 public class SpriteBody {
     public Rectangle colBox;
-    public SpriteBody(Rectangle rect) {
+    public float xOffset, yOffset;
+    public SpriteBody(Rectangle rect, float xOffset, float yOffset) {
+        this.xOffset = xOffset;
+        this.yOffset = yOffset;
         colBox = rect;
+        colBox.setX(colBox.getX() + xOffset);
+        colBox.setY(colBox.getY() + yOffset);
     }
 }
