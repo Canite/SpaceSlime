@@ -1,6 +1,7 @@
 package com.canite.spaceslime.Sprites;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -23,8 +24,7 @@ public class Slime extends Collidable {
     private HashMap<State, Animation> animations;
     private World world;
     private PlayScreen screen;
-    private boolean onGround = true;
-    private float stateTimer, maxXVel, maxYVel;
+    private float stateTimer, xSpeed, ySpeed;
 
     public Slime(World world, PlayScreen screen, int startX, int startY) {
         this.world = world;
@@ -34,8 +34,10 @@ public class Slime extends Collidable {
         xAccel = 0;
         yAccel = 0;
         stateTimer = 0;
-        maxXVel = 50.0f;
-        maxYVel = 50.0f;
+        xSpeed = 40.0f;
+        ySpeed = 800.0f;
+        maxXVel = 600.0f;
+        maxYVel = 600.0f;
         currentState = State.STANDING;
         previousState = State.STANDING;
 
@@ -140,66 +142,106 @@ public class Slime extends Collidable {
         setBounds(startX, startY, frameSize / SpaceSlime.PPM, frameSize / SpaceSlime.PPM);
         setRegion(animations.get(State.STANDING).getKeyFrame(stateTimer, false));
 
-        Gdx.app.log("player", Float.toString(getWidth()));
-        vertBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 4, getHeight()), (getWidth() * 3) / 8, 0);
-        horiBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth(), getHeight() / 4), 0, (getHeight() * 3) / 8);
+        vertTopBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), (getWidth() / 4), getHeight() / 2);
+        vertBotBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), (getWidth() / 4), 0);
+        horiLeftBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), 0, (getHeight() /4));
+        horiRightBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), getWidth() / 2, (getHeight() / 4));
     }
 
-    public void move(float accel) {
+    private void move(float accel) {
         xAccel = accel;
     }
 
-    public void stop() {
+    private void stop() {
         xAccel = 0.0f;
         // xVel = 0.0f;
     }
 
-    public void jump() {
+    private void jump() {
         if (onGround) {
-            yVel = 400.0f;
+            yVel = ySpeed;
         }
+    }
+
+    private void hook() {
+        Hook hook = new Hook(world, screen, getX() + 16, getY() + 16, 50.0f, 600.0f);
+        world.insertDynamic(hook);
     }
 
     @Override
     public void update(float dt) {
-        /* Control velocity */
-        xVel *= 0.8f;
+        /* Movement! */
+        /* X movement */
+        printStats();
+        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
+            move(-1 * xSpeed);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
+            move(xSpeed);
+        }
+        if ((!Gdx.input.isKeyPressed(Input.Keys.A) && !Gdx.input.isKeyPressed(Input.Keys.D))
+                || (Gdx.input.isKeyPressed(Input.Keys.A) && Gdx.input.isKeyPressed(Input.Keys.D))) {
+            stop();
+            if (onGround)
+                xVel *= 0.75f;
+            else
+                xVel *= 0.75f;
+        }
+        if (Math.abs(xVel) < 1) {
+           xVel = 0;
+        }
+
+        /* Y movement */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+            jump();
+        }
+
+        /* Hookshot */
+        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
+            hook();
+        }
+
+        if (yVel == 0 && xVel == 0) {
+            checkCollisions = false;
+        } else {
+            checkCollisions = true;
+        }
     }
 
     @Override
     public void collide(ColBody type, Collidable colObj) {
         if (colObj instanceof Ground) {
             switch(type) {
-                case HORIZONTAL:
-                    /* Horizontal collision */
+                case RIGHTHORI:
                     /* Moving right */
-                    if (xVel > 0) {
-                        /* Move to the difference between collision overlap */
-                        setX(colObj.horiBody.colBox.x - horiBody.colBox.width - 1);
-                    }
-                    /* Moving left */
-                    else if (xVel < 0) {
-                        /* Move to the difference between collision overlap */
-                        setX(colObj.horiBody.colBox.x + colObj.horiBody.colBox.width + 1);
-                    }
-                    xVel = 0;
-                    xAccel = 0;
+                    /* Move to the difference between collision overlap */
+                    setX(colObj.horiLeftBody.colBox.x - (horiRightBody.colBox.width + horiRightBody.xOffset) /*- 1*/);
+                    xVel = Math.min(0.0f, xVel);
+                    xAccel = Math.min(0.0f, xAccel);
                     break;
 
-                case VERTICAL:
-                    Gdx.app.log("player", "collision");
+                case LEFTHORI:
+                    /* Moving left */
+                    /* Move to the difference between collision overlap */
+                    setX(colObj.horiRightBody.colBox.x + colObj.horiRightBody.colBox.width + horiLeftBody.xOffset /*+ 1*/);
+                    xVel = Math.max(0.0f, xVel);
+                    xAccel = Math.max(0.0f, xAccel);
+                    break;
+
+                case BOTVERT:
                     /* Vertical collision */
                     /* Moving down */
-                    if (yVel < 0) {
-                        onGround = true;
-                        setY(colObj.vertBody.colBox.y + vertBody.colBox.height + 1);
-                    }
+                    setY(colObj.vertTopBody.colBox.y + colObj.vertTopBody.colBox.height + vertBotBody.yOffset /*+ 1*/);
+                    yVel = Math.max(0.0f, yVel);
+                    yAccel = Math.max(0.0f, yAccel);
+                    break;
+
+                case TOPVERT:
+                    /* Vertical collision */
                     /* Moving up */
-                    else if (yVel > 0) {
-                        setY(colObj.vertBody.colBox.y - colObj.vertBody.colBox.height - 1);
-                    }
-                    yVel = 0;
-                    yAccel = 0;
+                    setY(colObj.vertBotBody.colBox.y - (vertTopBody.colBox.height + vertTopBody.yOffset) /*- 1*/);
+                    yVel = Math.min(0.0f, yVel);
+                    yAccel = Math.min(0.0f, yAccel);
                     break;
             }
         }
@@ -208,6 +250,6 @@ public class Slime extends Collidable {
 
     public void printStats() {
         //Gdx.app.log("player", "x: " + Float.toString(getX()) + " y: " + Float.toString(getY()) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
-        Gdx.app.log("player", Float.toString(vertBody.colBox.y + vertBody.colBox.height));
+        Gdx.app.log("player", Float.toString(yVel));
     }
 }

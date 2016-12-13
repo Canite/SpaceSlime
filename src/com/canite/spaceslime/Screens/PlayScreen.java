@@ -118,24 +118,24 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean keyDown(int keycode) {
-        switch(keycode) {
+        /*switch(keycode) {
             case Input.Keys.A:
-                world.player.move(-15.0f);
+                world.player.move(-30.0f);
                 break;
             case Input.Keys.D:
-                world.player.move(15.0f);
+                world.player.move(30.0f);
                 break;
             case Input.Keys.W:
                 world.player.jump();
             default:
                 break;
-        }
+        }*/
         return true;
     }
 
     @Override
     public boolean keyUp(int keycode) {
-        switch(keycode) {
+        /*switch(keycode) {
             case Input.Keys.A:
                 world.player.stop();
                 break;
@@ -144,7 +144,7 @@ public class PlayScreen implements Screen, InputProcessor{
                 break;
             default:
                 break;
-        }
+        }*/
         return true;
     }
 
@@ -191,8 +191,8 @@ public class PlayScreen implements Screen, InputProcessor{
         world.update(dt);
 
         /* Center camera on player */
-        gameCam.position.x = world.player.getX();
-        gameCam.position.y = world.player.getY();
+        gameCam.position.x = Math.round(world.player.getX());
+        gameCam.position.y = Math.round(world.player.getY());
         gameCam.update();
 
         renderer.setView(gameCam);
@@ -217,9 +217,15 @@ public class PlayScreen implements Screen, InputProcessor{
         debug.setProjectionMatrix(gameCam.combined);
         debug.begin(ShapeRenderer.ShapeType.Filled);
         debug.setColor(0, 1, 0, 1);
-        Rectangle debugBox = world.player.horiBody.colBox;
-        debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
-        debugBox = world.player.vertBody.colBox;
+        Rectangle debugBox = world.player.horiRightBody.colBox;
+        //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        //debugBox = world.player.horiLeftBody.colBox;
+        //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        //debugBox = world.player.vertBotBody.colBox;
+        //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        //debugBox = world.player.vertTopBody.colBox;
+        //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        debugBox = new Rectangle(world.player.vertBotBody.colBox.x, world.player.vertBotBody.colBox.y - 2, world.player.vertBotBody.colBox.width, 2);
         debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
         debug.end();
 
