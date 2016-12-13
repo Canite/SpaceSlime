@@ -155,17 +155,32 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        return false;
+        if (pointer < 3) {
+            touches.get(pointer).touchX = screenX;
+            touches.get(pointer).touchY = screenY;
+            touches.get(pointer).touched = true;
+        }
+        return true;
     }
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        return false;
+        if (pointer < 3) {
+            touches.get(pointer).touchX = 0;
+            touches.get(pointer).touchY = 0;
+            touches.get(pointer).touched = false;
+        }
+        return true;
     }
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        return false;
+        if (pointer < 3  && touches.get(pointer).type.equals("move") && screenX < SpaceSlime.V_WIDTH / (3*SpaceSlime.PPM)) {
+            touches.get(pointer).touchX = screenX;
+            touches.get(pointer).touchY = screenY;
+            touches.get(pointer).touched = true;
+        }
+        return true;
     }
 
     @Override
@@ -184,10 +199,13 @@ public class PlayScreen implements Screen, InputProcessor{
     }
 
     public void handleInput(float dt) {
-
+        for (int i = 0; i < 3; i++) {
+            world.player.handleInput(touches.get(i));
+        }
     }
 
     public void update(float dt) {
+        handleInput(dt);
         world.update(dt);
 
         /* Center camera on player */

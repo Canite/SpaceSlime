@@ -160,6 +160,32 @@ public class Slime extends Collidable {
         }
     }
 
+    public void handleInput(PlayScreen.TouchInfo touchInfo) {
+        if (touchInfo.touched) {
+            // 1/6 of the screen width
+            if (touchInfo.touchX < SpaceSlime.V_WIDTH / (6 * SpaceSlime.PPM)) {
+                move(-20.0f);
+                touchInfo.type = "move";
+            } else if (touchInfo.touchX < SpaceSlime.V_WIDTH / (3 * SpaceSlime.PPM)) {
+                move(20.0f);
+                touchInfo.type = "move";
+            } else {
+                jump();
+                touchInfo.type = "jump";
+            }
+        } else {
+            if (touchInfo.type.equals("move")) {
+                stop();
+                touchInfo.type = "";
+            } else if (touchInfo.type.equals("jump") && yVel > 0) {
+                yVel *= 0.8;
+                if (yVel < 0.01) {
+                    yVel = 0;
+                }
+            }
+        }
+    }
+
     @Override
     public void update(float dt) {
         /* Control velocity */
@@ -187,7 +213,7 @@ public class Slime extends Collidable {
                     break;
 
                 case VERTICAL:
-                    Gdx.app.log("player", "collision");
+                    //Gdx.app.log("player", "collision");
                     /* Vertical collision */
                     /* Moving down */
                     if (yVel < 0) {
