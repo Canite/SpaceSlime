@@ -7,6 +7,8 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
  */
 public abstract class GameObject extends Sprite {
     public float xVel, yVel, xAccel, yAccel, maxXVel, maxYVel;
+    public boolean moving = false;
+    public boolean canJump = false;
     public boolean onGround = false;
     public boolean applyGravity = true;
     public abstract void update(float dt);

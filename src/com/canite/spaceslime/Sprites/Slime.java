@@ -37,9 +37,10 @@ public class Slime extends Collidable {
         xSpeed = 40.0f;
         ySpeed = 800.0f;
         maxXVel = 600.0f;
-        maxYVel = 600.0f;
+        maxYVel = 800.0f;
         currentState = State.STANDING;
         previousState = State.STANDING;
+        canJump = true;
 
         /* Initialize sprites */
         animations = new HashMap<State, Animation>();
@@ -150,10 +151,12 @@ public class Slime extends Collidable {
 
     private void move(float accel) {
         xAccel = accel;
+        moving = true;
     }
 
     private void stop() {
         xAccel = 0.0f;
+        moving = false;
         // xVel = 0.0f;
     }
 
@@ -172,54 +175,45 @@ public class Slime extends Collidable {
         if (touchInfo.touched) {
             // 1/6 of the screen width
             if (touchInfo.touchX < SpaceSlime.V_WIDTH / (6 * SpaceSlime.PPM)) {
-                move(-20.0f);
+                move(-1 * xSpeed);
                 touchInfo.type = "move";
             } else if (touchInfo.touchX < SpaceSlime.V_WIDTH / (3 * SpaceSlime.PPM)) {
-                move(20.0f);
+                move(xSpeed);
                 touchInfo.type = "move";
             } else {
-                jump();
-                touchInfo.type = "jump";
+                if (canJump) {
+                    canJump = false;
+                    jump();
+                    touchInfo.type = "jump";
+                }
             }
         } else {
             if (touchInfo.type.equals("move")) {
                 stop();
                 touchInfo.type = "";
-            } else if (touchInfo.type.equals("jump") && yVel > 0) {
-                yVel *= 0.8;
-                if (yVel < 0.01) {
-                    yVel = 0;
+            } else if (touchInfo.type.equals("jump")) {
+                if (yVel > 0) {
+                    yVel *= 0.6;
                 }
+                touchInfo.type = "";
+                canJump = true;
             }
         }
     }
 
     @Override
     public void update(float dt) {
-        /* Movement! */
-        /* X movement */
-        printStats();
-        if (Gdx.input.isKeyPressed(Input.Keys.A)) {
-            move(-1 * xSpeed);
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.D)) {
-            move(xSpeed);
-        }
-        if ((!Gdx.input.isKeyPressed(Input.Keys.A) && !Gdx.input.isKeyPressed(Input.Keys.D))
-                || (Gdx.input.isKeyPressed(Input.Keys.A) && Gdx.input.isKeyPressed(Input.Keys.D))) {
-            stop();
-            if (onGround)
+        if (!moving) {
+            // check if on ground to later have different friction in air
+            if (onGround) {
                 xVel *= 0.75f;
-            else
+            } else {
                 xVel *= 0.75f;
-        }
-        if (Math.abs(xVel) < 1) {
-           xVel = 0;
+            }
         }
 
-        /* Y movement */
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-            jump();
+        if (Math.abs(xVel) < 1) {
+           xVel = 0;
         }
 
         /* Hookshot */
@@ -227,7 +221,7 @@ public class Slime extends Collidable {
             hook();
         }
 
-        if (yVel == 0 && xVel == 0) {
+        if (yVel == 0 && xVel == 0 && !moving && onGround) {
             checkCollisions = false;
         } else {
             checkCollisions = true;
@@ -258,6 +252,7 @@ public class Slime extends Collidable {
                     /* Vertical collision */
                     /* Moving down */
                     setY(colObj.vertTopBody.colBox.y + colObj.vertTopBody.colBox.height + vertBotBody.yOffset /*+ 1*/);
+                    Gdx.app.log("Slime", String.valueOf(yVel));
                     yVel = Math.max(0.0f, yVel);
                     yAccel = Math.max(0.0f, yAccel);
                     break;

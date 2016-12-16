@@ -100,7 +100,7 @@ public class World {
                     if (colliding(feet, horiLeftColRect) || colliding(feet, horiRightColRect)
                             || colliding(feet, vertTopColRect) || colliding(feet, vertBotColRect)) {
                         obj.onGround = true;
-                        Gdx.app.log("World", "on ground");
+                        //Gdx.app.log("World", "on ground");
                     }
                 }
             }
@@ -144,6 +144,8 @@ public class World {
                 if (((Collidable) obj).checkCollisions) {
                     obj.onGround = false;
                     checkCollisions((Collidable) obj);
+                    if (!obj.onGround)
+                        Gdx.app.log("World", "not");
                 }
             }
         }
