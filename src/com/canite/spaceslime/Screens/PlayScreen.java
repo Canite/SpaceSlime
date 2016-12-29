@@ -99,7 +99,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
         Gdx.input.setInputProcessor(this);
 
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             touches.put(i, new TouchInfo());
         }
     }
@@ -155,7 +155,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-        if (pointer < 3) {
+        if (pointer < 5 && touches.get(pointer).type == "") {
             touches.get(pointer).touchX = screenX;
             touches.get(pointer).touchY = screenY;
             touches.get(pointer).touched = true;
@@ -165,7 +165,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        if (pointer < 3) {
+        if (pointer < 5) {
             touches.get(pointer).touchX = 0;
             touches.get(pointer).touchY = 0;
             touches.get(pointer).touched = false;
@@ -175,7 +175,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (pointer < 3  && touches.get(pointer).type.equals("move") && screenX < SpaceSlime.V_WIDTH / (3*SpaceSlime.PPM)) {
+        if (pointer < 5  && touches.get(pointer).type.equals("move") && screenX < SpaceSlime.V_WIDTH / (3*SpaceSlime.PPM)) {
             touches.get(pointer).touchX = screenX;
             touches.get(pointer).touchY = screenY;
             touches.get(pointer).touched = true;
@@ -199,7 +199,7 @@ public class PlayScreen implements Screen, InputProcessor{
     }
 
     public void handleInput(float dt) {
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 5; i++) {
             world.player.handleInput(touches.get(i));
         }
     }

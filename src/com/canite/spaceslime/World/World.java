@@ -144,8 +144,6 @@ public class World {
                 if (((Collidable) obj).checkCollisions) {
                     obj.onGround = false;
                     checkCollisions((Collidable) obj);
-                    if (!obj.onGround)
-                        Gdx.app.log("World", "not");
                 }
             }
         }

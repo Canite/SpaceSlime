@@ -252,7 +252,6 @@ public class Slime extends Collidable {
                     /* Vertical collision */
                     /* Moving down */
                     setY(colObj.vertTopBody.colBox.y + colObj.vertTopBody.colBox.height + vertBotBody.yOffset /*+ 1*/);
-                    Gdx.app.log("Slime", String.valueOf(yVel));
                     yVel = Math.max(0.0f, yVel);
                     yAccel = Math.max(0.0f, yAccel);
                     break;
@@ -270,7 +269,7 @@ public class Slime extends Collidable {
     }
 
     public void printStats() {
-        //Gdx.app.log("player", "x: " + Float.toString(getX()) + " y: " + Float.toString(getY()) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
-        Gdx.app.log("player", Float.toString(yVel));
+        Gdx.app.log("player", "x: " + Float.toString(getX()) + " y: " + Float.toString(getY()) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
+        //Gdx.app.log("player", Float.toString(yVel));
     }
 }
