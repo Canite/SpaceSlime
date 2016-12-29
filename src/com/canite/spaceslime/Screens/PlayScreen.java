@@ -231,9 +231,13 @@ public class PlayScreen implements Screen, InputProcessor{
         world.draw(game.batch);
         game.batch.end();
 
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
         // debug
         debug.setProjectionMatrix(gameCam.combined);
         debug.begin(ShapeRenderer.ShapeType.Filled);
+        world.staticObjectTree.drawDebugObjects(debug, 0.0f);
         debug.setColor(0, 1, 0, 1);
         Rectangle debugBox = world.player.horiRightBody.colBox;
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
@@ -245,6 +249,12 @@ public class PlayScreen implements Screen, InputProcessor{
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
         debugBox = new Rectangle(world.player.vertBotBody.colBox.x, world.player.vertBotBody.colBox.y - 2, world.player.vertBotBody.colBox.width, 2);
         debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        debug.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        debug.setProjectionMatrix(gameCam.combined);
+        debug.begin(ShapeRenderer.ShapeType.Line);
+        world.staticObjectTree.drawDebugQuads(debug);
         debug.end();
 
         // set again for hud

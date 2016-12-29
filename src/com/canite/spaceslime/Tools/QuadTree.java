@@ -1,6 +1,6 @@
 package com.canite.spaceslime.Tools;
 
-import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import com.canite.spaceslime.Sprites.Collidable;
@@ -9,7 +9,7 @@ import com.canite.spaceslime.Sprites.Collidable;
  * Created by austin on 2/8/16.
  */
 public class QuadTree {
-    private int MAX_OBJECTS = 10;
+    private int MAX_OBJECTS = 5;
     private int MAX_LEVEL = 5;
 
     private int level;
@@ -70,7 +70,9 @@ public class QuadTree {
            | III |  IV |
            |_____|_____|
          */
-        if (topQuad && rightQuad) { index = 0; }
+        // Keep overlapping objects in the parent quadtree
+        if ((topQuad && botQuad) || (leftQuad && rightQuad)) { index = -1; } // Overlapping!
+        else if (topQuad && rightQuad) { index = 0; }
         else if (topQuad && leftQuad) { index = 1; }
         else if (botQuad && leftQuad) { index = 2; }
         else if (botQuad && rightQuad) { index = 3; }
@@ -89,6 +91,8 @@ public class QuadTree {
         }
 
         objects.add(sp);
+        // NOTE: This could break if a large number of objects are overlapping 2 nodes
+        // and by break, I mean it will run every frame as objects.size will always be > MAX_OBJECTS
         if (objects.size > MAX_OBJECTS && level < MAX_LEVEL) {
             if (nodes[0] == null) {
                 split();
@@ -114,5 +118,28 @@ public class QuadTree {
 
         collidingObjects.addAll(objects);
         return collidingObjects;
+    }
+
+    public void drawDebugQuads(ShapeRenderer renderer) {
+        renderer.setColor(0, 0, 1, 1);
+        renderer.rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        for (int i = 0; i < nodes.length; i++) {
+            if (nodes[i] != null) {
+                nodes[i].drawDebugQuads(renderer);
+            }
+        }
+    }
+
+    public void drawDebugObjects(ShapeRenderer renderer, float alpha) {
+        renderer.setColor(1, 0, 0, alpha);
+        for (Collidable obj : objects) {
+            Rectangle rect = obj.getBoundingRectangle();
+            renderer.rect(rect.x, rect.y, rect.width, rect.height);
+        }
+        for (int i = 0; i < nodes.length; i++) {
+            if (nodes[i] != null) {
+                nodes[i].drawDebugObjects(renderer, alpha + 0.1f);
+            }
+        }
     }
 }

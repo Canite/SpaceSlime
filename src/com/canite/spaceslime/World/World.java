@@ -20,7 +20,7 @@ import com.canite.spaceslime.Types.ColBody;
 public class World {
     private Array<GameObject> staticObjects;
     private Array<GameObject> dynamicObjects;
-    private QuadTree staticObjectTree;
+    public QuadTree staticObjectTree;
     private QuadTree dynamicObjectTree;
     private Rectangle worldBounds;
 
