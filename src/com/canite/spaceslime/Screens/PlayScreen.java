@@ -205,8 +205,8 @@ public class PlayScreen implements Screen, InputProcessor{
     }
 
     public void update(float dt) {
-        handleInput(dt);
         world.update(dt);
+        handleInput(dt);
 
         /* Center camera on player */
         gameCam.position.x = Math.round(world.player.getX());

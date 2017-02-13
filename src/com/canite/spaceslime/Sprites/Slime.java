@@ -25,6 +25,9 @@ public class Slime extends Collidable {
     private World world;
     private PlayScreen screen;
     private float stateTimer, xSpeed, ySpeed;
+    private boolean canHook;
+    public boolean hooked;
+    private Hook hook;
 
     public Slime(World world, PlayScreen screen, int startX, int startY) {
         this.world = world;
@@ -41,6 +44,8 @@ public class Slime extends Collidable {
         currentState = State.STANDING;
         previousState = State.STANDING;
         canJump = true;
+        canHook = true;
+        hooked = false;
 
         /* Initialize sprites */
         animations = new HashMap<State, Animation>();
@@ -149,17 +154,6 @@ public class Slime extends Collidable {
         horiRightBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), getWidth() / 2, (getHeight() / 4));
     }
 
-    private void move(float accel) {
-        xAccel = accel;
-        moving = true;
-    }
-
-    private void stop() {
-        xAccel = 0.0f;
-        moving = false;
-        // xVel = 0.0f;
-    }
-
     private void jump() {
         if (onGround) {
             yVel = ySpeed;
@@ -167,29 +161,65 @@ public class Slime extends Collidable {
     }
 
     private void hook() {
-        Hook hook = new Hook(world, screen, getX() + 16, getY() + 16, 50.0f, 600.0f);
+        hook = new Hook(world, screen, this, getX() + 16, getY() + 16, 600.0f, 600.0f);
         world.insertDynamic(hook);
+    }
+
+    public void removeHook() {
+        world.removeDynamic(hook);
+        hook = null;
+        canHook = true;
+        hooked = false;
     }
 
     public void handleInput(PlayScreen.TouchInfo touchInfo) {
         if (touchInfo.touched) {
             // 1/6 of the screen width
             if (touchInfo.touchX < SpaceSlime.V_WIDTH / (6 * SpaceSlime.PPM)) {
-                move(-1 * xSpeed);
+                if (hooked) {
+                    float dir = (float)hook.angle - 90;
+                    if (dir < 0) {
+                        dir += 360;
+                    }
+                    applyForce(dir, xSpeed);
+                } else {
+                    if (Math.abs(xVel + xSpeed) < maxXVel) {
+                        applyForce(180, xSpeed);
+                        moving = true;
+                    }
+                }
                 touchInfo.type = "move";
             } else if (touchInfo.touchX < SpaceSlime.V_WIDTH / (3 * SpaceSlime.PPM)) {
-                move(xSpeed);
+                if (hooked) {
+                    float dir = ((float)hook.angle + 90) % 360;
+                    applyForce(dir, xSpeed);
+                } else {
+                    if (Math.abs(xVel + xSpeed) < maxXVel) {
+                        applyForce(0, xSpeed);
+                        moving = true;
+                    }
+                }
                 touchInfo.type = "move";
             } else {
-                if (canJump) {
-                    canJump = false;
-                    jump();
-                    touchInfo.type = "jump";
+                if (touchInfo.type == "") {
+                    if (onGround) {
+                        if (canJump) {
+                            canJump = false;
+                            jump();
+                            touchInfo.type = "jump";
+                        }
+                    } else {
+                        if (canHook) {
+                            canHook = false;
+                            hook();
+                            touchInfo.type = "hook";
+                        }
+                    }
                 }
             }
         } else {
             if (touchInfo.type.equals("move")) {
-                stop();
+                moving = false;
                 touchInfo.type = "";
             } else if (touchInfo.type.equals("jump")) {
                 if (yVel > 0) {
@@ -197,16 +227,21 @@ public class Slime extends Collidable {
                 }
                 touchInfo.type = "";
                 canJump = true;
+            } else if (touchInfo.type.equals("hook")) {
+                removeHook();
+                touchInfo.type = "";
             }
         }
     }
 
     @Override
     public void update(float dt) {
+        xAccel = 0;
+        yAccel = 0;
         if (!moving) {
-            // check if on ground to later have different friction in air
-            if (onGround) {
-                xVel *= 0.75f;
+            if (hooked) {
+                xVel *= 0.9f; //0.9f;
+                yVel *= 0.9f;
             } else {
                 xVel *= 0.75f;
             }
@@ -216,15 +251,32 @@ public class Slime extends Collidable {
            xVel = 0;
         }
 
-        /* Hookshot */
-        if (Gdx.input.isKeyJustPressed(Input.Keys.P)) {
-            hook();
-        }
-
         if (yVel == 0 && xVel == 0 && !moving && onGround) {
             checkCollisions = false;
         } else {
             checkCollisions = true;
+        }
+
+        speed = Math.sqrt(xVel * xVel + yVel * yVel);
+
+        if (hooked) {
+            float xDiff = getX() - hook.getX();
+            float yDiff = getY() - hook.getY();
+            float distance = (float)Math.sqrt((xDiff * xDiff + yDiff * yDiff));
+            if (distance > hook.length) {
+                // Move the player to the length of the rope
+                float hyp = distance - hook.length;
+                double theta = Math.atan2(yDiff, xDiff);
+                float xMove = hyp * (float)Math.cos(theta);
+                float yMove = hyp * (float)Math.sin(theta);
+                setX(getX() - xMove);
+                setY(getY() - yMove);
+                //double innerAngle = calcAngle(getX() + xVel, getX() + yVel, hook.getX(), hook.getY(), getX(), getY());
+                //double newSpeed = speed * Math.sin(innerAngle);
+                double newDir = Math.atan2(getY() - prevY, getX() - prevX);
+                xVel = (float)(speed * Math.cos(newDir));
+                yVel = (float)(speed * Math.sin(newDir));
+            }
         }
     }
 
@@ -268,8 +320,13 @@ public class Slime extends Collidable {
         updateColBox();
     }
 
+    private double calcAngle(float x1, float y1, float x2, float y2, float x3, float y3) {
+        // Calc the angle between 3 points with (x1,y1) being the vertex
+        return Math.atan2(y2 - y1, x2 - x1) - Math.atan2(y3 - y1, x3 - x1);
+    }
+
     public void printStats() {
-        Gdx.app.log("player", "x: " + Float.toString(getX()) + " y: " + Float.toString(getY()) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
+        Gdx.app.log("player", "xAcc: " + Float.toString(xAccel) + " yAcc: " + Float.toString(yAccel) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
         //Gdx.app.log("player", Float.toString(yVel));
     }
 }

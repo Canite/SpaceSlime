@@ -24,7 +24,7 @@ public class World {
     private QuadTree dynamicObjectTree;
     private Rectangle worldBounds;
 
-    private float gravity = -30.0f / SpaceSlime.PPM;
+    private float gravity = 30.0f / SpaceSlime.PPM;
 
     public Slime player;
 
@@ -39,22 +39,28 @@ public class World {
     private void applyPhysics(GameObject obj, float dt) {
         /* Apply gravity */
         if (!obj.onGround) {
-            if (obj.applyGravity)
-                obj.yAccel = gravity;
-        } else {
-            obj.yAccel = 0;
+            if (obj.applyGravity && Math.abs(obj.yVel - gravity) < obj.maxYVel) {
+                // Apply "down" force of gravity
+                obj.applyForce(270, gravity);
+            }
         }
 
         /* Update velocity based on acceleration */
-        if ((Math.abs(obj.xVel + obj.xAccel) < obj.maxXVel) || ((obj.xVel > 0) != (obj.xAccel > 0)))
+        //if ((Math.abs(obj.xVel + obj.xAccel) < obj.maxXVel) || ((obj.xVel > 0) != (obj.xAccel > 0)))
             obj.xVel += obj.xAccel;
         // if we are not at our max velocity and the acceleration is trying to add to the velocity
-        if ((Math.abs(obj.yVel + obj.yAccel) < obj.maxYVel) || ((obj.yVel > 0) != (obj.yAccel > 0)))
+        //if ((Math.abs(obj.yVel + obj.yAccel) < obj.maxYVel) || ((obj.yVel > 0) != (obj.yAccel > 0)))
             obj.yVel += obj.yAccel;
+        if (obj == player) {
+            player.printStats();
+        }
 
+        obj.prevX = obj.getX();
+        obj.prevY = obj.getY();
         /* Apply velocity to objects position */
-        obj.setX(obj.getX() + Math.round(obj.xVel * dt));
-        obj.setY(obj.getY() + Math.round(obj.yVel * dt));
+        obj.setX(obj.getX() + obj.xVel * dt);
+        obj.setY(obj.getY() + obj.yVel * dt);
+
     }
 
     private boolean colliding(Rectangle rect1, Rectangle rect2) { return rect1.overlaps(rect2); }
@@ -115,12 +121,20 @@ public class World {
         }
     }
 
+    public void removeDynamic(GameObject dynObject) {
+        dynamicObjects.removeValue(dynObject, true);
+    }
+
     public void insertStatic(GameObject statObject) {
         staticObjects.add(statObject);
         /* Quadtree is only for collidable objects */
         if (statObject instanceof Collidable) {
             staticObjectTree.insert((Collidable) statObject);
         }
+    }
+
+    public void removeStatic(GameObject statObject) {
+        staticObjects.removeValue(statObject, true);
     }
 
     public void update(float dt) {
