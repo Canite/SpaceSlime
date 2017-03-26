@@ -1,10 +1,12 @@
 package com.canite.spaceslime.Tools;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
-import com.canite.spaceslime.Sprites.Collidable;
+import com.canite.spaceslime.Collisions.CollisionDispatcher;
+import com.canite.spaceslime.Sprites.GameObject;
 
 /**
  * Created by austin on 2/8/16.
@@ -14,7 +16,7 @@ public class QuadTree {
     private int MAX_LEVEL = 5;
 
     private int level;
-    private Array<Collidable> objects;
+    private Array<GameObject> objects;
     private Rectangle bounds;
     private QuadTree[] nodes;
 
@@ -22,7 +24,7 @@ public class QuadTree {
         this.level = level;
         this.bounds = bounds;
 
-        objects = new Array<Collidable>();
+        objects = new Array<GameObject>();
         nodes = new QuadTree[4];
     }
 
@@ -89,7 +91,7 @@ public class QuadTree {
         return index;
     }
 
-    public void insert(Collidable sp) {
+    public void insert(GameObject sp) {
         Rectangle spBounds = sp.getBoundingRectangle();
         if (nodes[0] != null) {
             int index = getIndex(spBounds);
@@ -119,22 +121,55 @@ public class QuadTree {
         }
     }
 
-    public Array<Collidable> retrieve(Array<Collidable> collidingObjects, Rectangle rect) {
+    public void retrieve(Array<GameObject> collidingObjects, Rectangle rect, Array<GameObject> checked_objects) {
         int index = getIndex(rect);
         if (nodes[0] != null) {
             if (index >= 0) {
-                nodes[index].retrieve(collidingObjects, rect);
+                nodes[index].retrieve(collidingObjects, rect, checked_objects);
             } else if (index == -2){
                 // If we're overlapping, get everything
-                nodes[0].retrieve(collidingObjects, rect);
-                nodes[1].retrieve(collidingObjects, rect);
-                nodes[2].retrieve(collidingObjects, rect);
-                nodes[3].retrieve(collidingObjects, rect);
+                nodes[0].retrieve(collidingObjects, rect, checked_objects);
+                nodes[1].retrieve(collidingObjects, rect, checked_objects);
+                nodes[2].retrieve(collidingObjects, rect, checked_objects);
+                nodes[3].retrieve(collidingObjects, rect, checked_objects);
             }
         }
 
-        collidingObjects.addAll(objects);
-        return collidingObjects;
+        for (int i = 0; i < objects.size; i++) {
+            if (!checked_objects.contains(objects.get(i), true)) {
+                collidingObjects.add(objects.get(i));
+            }
+        }
+    }
+
+    public void generateManifolds(Array<GameObject> dynamic_objects, Array<Manifold> manifolds) {
+        Array<GameObject> checked_objects = new Array<GameObject>();
+        for (GameObject object : dynamic_objects) {
+            // Only generate manifolds for dynamic objects
+            //if (!object.isStatic) {
+                checked_objects.add(object);
+                Array<GameObject> colliding_objects = new Array<GameObject>();
+                // Generate a list of potential colliding objects, ignore already checked objects
+                retrieve(colliding_objects, object.getBoundingRectangle(), checked_objects);
+                for (GameObject colliding_object : colliding_objects) {
+                    Manifold collision = new Manifold(object.body, colliding_object.body);
+                    collision.solve();
+                    // If we are actually colliding
+                    if (collision.num_contacts > 0) {
+                        manifolds.add(collision);
+                    }
+                }
+            //}
+        }
+
+        /*
+        if (nodes[0] != null) {
+            nodes[0].generateManifolds(manifolds, checked_objects);
+            nodes[1].generateManifolds(manifolds, checked_objects);
+            nodes[2].generateManifolds(manifolds, checked_objects);
+            nodes[3].generateManifolds(manifolds, checked_objects);
+        }
+        */
     }
 
     public void drawDebugQuads(ShapeRenderer renderer) {
@@ -149,7 +184,7 @@ public class QuadTree {
 
     public void drawDebugObjects(ShapeRenderer renderer, float alpha) {
         renderer.setColor(1, 0, 0, alpha);
-        for (Collidable obj : objects) {
+        for (GameObject obj : objects) {
             Rectangle rect = obj.getBoundingRectangle();
             renderer.rect(rect.x, rect.y, rect.width, rect.height);
         }

@@ -1,183 +1,151 @@
 package com.canite.spaceslime.World;
 
-import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import com.canite.spaceslime.SpaceSlime;
-import com.canite.spaceslime.Sprites.Collidable;
+import com.canite.spaceslime.Bodies.SpriteBody;
 import com.canite.spaceslime.Sprites.GameObject;
 import com.canite.spaceslime.Sprites.Ground;
 import com.canite.spaceslime.Sprites.Slime;
+import com.canite.spaceslime.Tools.Manifold;
 import com.canite.spaceslime.Tools.QuadTree;
-import com.canite.spaceslime.Types.ColBody;
 
 /**
  * Created by Austin on 2/7/2016.
  */
 
-public class World {
-    private Array<GameObject> staticObjects;
-    private Array<GameObject> dynamicObjects;
-    public QuadTree staticObjectTree;
-    private QuadTree dynamicObjectTree;
-    private Rectangle worldBounds;
+/*
+    !!!!!!!!!!!!!!!!!!!
+    PAY ATTENTION!!!!!!
+    LIBGDX USES BOTTOM-LEFT AS THE ORIGIN, NOT THE TOP-LEFT!!!!!!!!
+    PLEASE DON'T FORGET AGAIN!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!
+ */
 
-    private float gravity = 30.0f / SpaceSlime.PPM;
+public class World {
+    private Array<GameObject> objects;
+    public Array<Manifold> collisions;
+    public QuadTree objectTree;
+    private Rectangle worldBounds;
+    public Array<GameObject> dynamic_objects;
 
     public Slime player;
 
+    private Vector2 GRAVITY = new Vector2(0.0f, -600.0f);
+
     public World(int width, int height) {
         worldBounds = new Rectangle(0, 0, width, height);
-        staticObjects = new Array<GameObject>();
-        dynamicObjects = new Array<GameObject>();
-        staticObjectTree = new QuadTree(0, worldBounds);
-        dynamicObjectTree = new QuadTree(0, worldBounds);
+        objects = new Array<GameObject>();
+        objectTree = new QuadTree(0, worldBounds);
+        collisions = new Array<Manifold>();
+        dynamic_objects = new Array<GameObject>();
     }
 
-    private void applyPhysics(GameObject obj, float dt) {
-        /* Apply gravity */
-        if (!obj.onGround) {
-            if (obj.applyGravity && Math.abs(obj.yVel - gravity) < obj.maxYVel) {
-                // Apply "down" force of gravity
-                obj.applyForce(270, gravity);
-            }
+    public void insertObject(GameObject obj) {
+        objects.add(obj);
+        if (!obj.isStatic) {
+            dynamic_objects.add(obj);
         }
-
-        /* Update velocity based on acceleration */
-        //if ((Math.abs(obj.xVel + obj.xAccel) < obj.maxXVel) || ((obj.xVel > 0) != (obj.xAccel > 0)))
-            obj.xVel += obj.xAccel;
-        // if we are not at our max velocity and the acceleration is trying to add to the velocity
-        //if ((Math.abs(obj.yVel + obj.yAccel) < obj.maxYVel) || ((obj.yVel > 0) != (obj.yAccel > 0)))
-            obj.yVel += obj.yAccel;
-        if (obj == player) {
-            player.printStats();
-        }
-
-        obj.prevX = obj.getX();
-        obj.prevY = obj.getY();
-        /* Apply velocity to objects position */
-        obj.setX(obj.getX() + obj.xVel * dt);
-        obj.setY(obj.getY() + obj.yVel * dt);
-
-    }
-
-    private boolean colliding(Rectangle rect1, Rectangle rect2) { return rect1.overlaps(rect2); }
-
-    private void checkCollisions(Collidable obj) {
-        Array<Collidable> colObjs = new Array<Collidable>();
-        Rectangle rect = obj.getBoundingRectangle();
-        Rectangle horiLeftRect = obj.horiLeftBody.colBox;
-        Rectangle horiRightRect = obj.horiRightBody.colBox;
-        Rectangle vertTopRect = obj.vertTopBody.colBox;
-        Rectangle vertBotRect = obj.vertBotBody.colBox;
-
-        //player.printStats();
-        /* Assume all objects in quad trees are collidable (they are) */
-        staticObjectTree.retrieve(colObjs, rect);
-        dynamicObjectTree.retrieve(colObjs, rect);
-
-        for (Collidable colObj : colObjs) {
-            if (colObj != obj) {
-                Rectangle horiLeftColRect = colObj.horiLeftBody.colBox;
-                Rectangle horiRightColRect = colObj.horiRightBody.colBox;
-                Rectangle vertTopColRect = colObj.vertTopBody.colBox;
-                Rectangle vertBotColRect = colObj.vertBotBody.colBox;
-                if (colliding(horiLeftRect, horiLeftColRect) || colliding(horiLeftRect, horiRightColRect)
-                        || colliding(horiLeftRect, vertTopColRect) || colliding(horiLeftRect, vertBotColRect)) {
-                    obj.collide(ColBody.LEFTHORI, colObj);
-                }
-                if (colliding(horiRightRect, horiLeftColRect) || colliding(horiRightRect, horiRightColRect)
-                        || colliding(horiRightRect, vertTopColRect) || colliding(horiRightRect, vertBotColRect)) {
-                    obj.collide(ColBody.RIGHTHORI, colObj);
-                }
-                if (colliding(vertTopRect, horiLeftColRect) || colliding(vertTopRect, horiRightColRect)
-                        || colliding(vertTopRect, vertTopColRect) || colliding(vertTopRect, vertBotColRect)) {
-                    obj.collide(ColBody.TOPVERT, colObj);
-                }
-                if (colliding(vertBotRect, horiLeftColRect) || colliding(vertBotRect, horiRightColRect)
-                        || colliding(vertBotRect, vertTopColRect) || colliding(vertBotRect, vertBotColRect)) {
-                    obj.collide(ColBody.BOTVERT, colObj);
-                }
-                /* Check if on ground */
-                if (colObj instanceof Ground) {
-                    Rectangle feet = new Rectangle(obj.vertBotBody.colBox.x, obj.vertBotBody.colBox.y - 2, obj.vertBotBody.colBox.width, 2);
-                    if (colliding(feet, horiLeftColRect) || colliding(feet, horiRightColRect)
-                            || colliding(feet, vertTopColRect) || colliding(feet, vertBotColRect)) {
-                        obj.onGround = true;
-                        //Gdx.app.log("World", "on ground");
-                    }
-                }
-            }
-        }
-    }
-
-    public void insertDynamic(GameObject dynObject) {
-        dynamicObjects.add(dynObject);
         /* Quadtree is only for collidable objects */
-        if (dynObject instanceof Collidable) {
-            dynamicObjectTree.insert((Collidable) dynObject);
-        }
+        objectTree.insert(obj);
     }
 
-    public void removeDynamic(GameObject dynObject) {
-        dynamicObjects.removeValue(dynObject, true);
-    }
-
-    public void insertStatic(GameObject statObject) {
-        staticObjects.add(statObject);
-        /* Quadtree is only for collidable objects */
-        if (statObject instanceof Collidable) {
-            staticObjectTree.insert((Collidable) statObject);
-        }
-    }
-
-    public void removeStatic(GameObject statObject) {
-        staticObjects.removeValue(statObject, true);
+    public void removeObject(GameObject obj) {
+        objects.removeValue(obj, true);
     }
 
     public void update(float dt) {
         /* Dynamic objects will need to be recalculated
         for quad tree before checking for collisions */
-        dynamicObjectTree.clear();
+        objectTree.clear();
+        collisions.clear();
 
-        /* First, apply physics to each object and regenerate the collision tree */
-        for (GameObject obj : dynamicObjects) {
-            applyPhysics(obj, dt);
-            obj.update(dt);
-            if (obj instanceof Collidable) {
-                ((Collidable) obj).updateColBox();
-                dynamicObjectTree.insert((Collidable) obj);
+        /* First, regenerate the collision tree */
+        /* BROAD PHASE */
+        for (GameObject obj : objects) {
+            obj.onGround = false; // This will be reset later
+            objectTree.insert(obj);
+        }
+
+        objectTree.generateManifolds(dynamic_objects, collisions);
+
+        /* Add force(acceleration) to objects velocities */
+        for (GameObject obj : objects) {
+            if (!obj.isStatic) {
+                integrateForces(obj.body, dt);
             }
         }
 
-        /* Now check for collisions */
-        for (GameObject obj : dynamicObjects) {
-            if (obj instanceof Collidable) {
-                if (((Collidable) obj).checkCollisions) {
-                    obj.onGround = false;
-                    checkCollisions((Collidable) obj);
+        /* Initialize collisions */
+        for (Manifold collision: collisions) {
+            collision.initialize();
+        }
+
+        /* Apply impulses to objects */
+        for (Manifold collision: collisions) {
+            collision.applyImpulse();
+        }
+
+        /* Integrate velocities (add to position) */
+        for (GameObject obj: objects) {
+            obj.update(dt);
+            if (!obj.isStatic) {
+                integrateVelocity(obj, dt);
+            }
+        }
+
+        /* Correct positions */
+        for (Manifold collision: collisions) {
+
+            if (collision.B.parent instanceof Ground) {
+                if (collision.normal.angle() > 195 && collision.normal.angle() < 345) {
+                    collision.A.parent.onGround = true;
                 }
             }
         }
 
-        /* Then update each (dynamic) object */
-        //for (GameObject obj : dynamicObjects) {
-        //}
+        /* Apply new positions to sprites */
+        for (GameObject obj: objects) {
+            obj.updatePosition();
+        }
+
+        /* Clear forces */
+        for (GameObject obj: objects) {
+            obj.body.force.set(0, 0);
+            //obj.body.torque = 0;
+        }
     }
 
     public void draw(Batch batch) {
         /* Static objects are drawn by tiles (maybe) */
-        for (Sprite obj : dynamicObjects) {
-            obj.draw(batch);
+        for (GameObject obj : objects) {
+            if (!obj.isStatic) {
+                obj.draw(batch);
+            }
         }
     }
 
     public void dispose() {
-        staticObjectTree.clear();
-        dynamicObjectTree.clear();
-        staticObjects.clear();
-        dynamicObjects.clear();
+        objectTree.clear();
+        objects.clear();
+    }
+
+    public void integrateForces(SpriteBody body, float dt) {
+        dt = 1.0f/64.0f;
+        float dts = dt * 0.5f;
+
+        body.velocity.mulAdd(body.force, body.mass_data.inv_mass * dts);
+        body.velocity.mulAdd(GRAVITY, dts * body.gravity_scale);
+        //body.angular_velocity += body.torque * body.mass_data.inv_inertia * dts;
+    }
+
+    public void integrateVelocity(GameObject obj, float dt) {
+        dt = 1.0f/64.0f;
+
+        obj.body.position.mulAdd(obj.body.velocity, dt);
+        obj.body.shape.UpdatePosition(obj.body.position);
+
+        integrateForces(obj.body, dt);
     }
 }

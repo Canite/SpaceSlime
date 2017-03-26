@@ -1,16 +1,15 @@
 package com.canite.spaceslime.Sprites;
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.canite.spaceslime.Bodies.SpriteBody;
 import com.canite.spaceslime.Screens.PlayScreen;
 import com.canite.spaceslime.SpaceSlime;
-import com.canite.spaceslime.Types.ColBody;
+import com.canite.spaceslime.Tools.Manifold;
+import com.canite.spaceslime.Types.Circle;
+import com.canite.spaceslime.Types.Shape;
 import com.canite.spaceslime.World.World;
 
 import java.util.HashMap;
@@ -18,31 +17,28 @@ import java.util.HashMap;
 /**
  * Created by Austin on 2/7/2016.
  */
-public class Slime extends Collidable {
+public class Slime extends GameObject {
     public enum State {FALLING, JUMPING, LANDING, STANDING, RUNNING, HOOKING}
     public State currentState, previousState;
     private HashMap<State, Animation> animations;
     private World world;
     private PlayScreen screen;
-    private float stateTimer, xSpeed, ySpeed;
+    private float stateTimer;
+    private Vector2 x_speed;
+    private Vector2 y_speed;
     private boolean canHook;
     public boolean hooked;
+    private Vector2 normal_vector = new Vector2();
     private Hook hook;
 
     public Slime(World world, PlayScreen screen, int startX, int startY) {
         this.world = world;
         this.screen = screen;
-        xVel = 0;
-        yVel = 0;
-        xAccel = 0;
-        yAccel = 0;
         stateTimer = 0;
-        xSpeed = 40.0f;
-        ySpeed = 800.0f;
-        maxXVel = 600.0f;
-        maxYVel = 800.0f;
         currentState = State.STANDING;
         previousState = State.STANDING;
+        x_speed = new Vector2(1200.0f, 0.0f);
+        y_speed = new Vector2(0.0f, 400.0f);
         canJump = true;
         canHook = true;
         hooked = false;
@@ -52,19 +48,18 @@ public class Slime extends Collidable {
 
         Array<TextureRegion> frames = new Array<TextureRegion>();
         int numFrames = 1;
-        int frameSize = 64;
+        int frameSize = 32;
         float animationSpeed = 0.1f;
 
         for (int i = 0; i < numFrames; i++) {
             TextureRegion frameRegion;
-            frameRegion = new TextureRegion(screen.getAtlas().findRegion("SSpack" /*slimeStand*/), i*frameSize, 0, frameSize, frameSize);
+            frameRegion = new TextureRegion(screen.getAtlas().findRegion("slime"), i*frameSize, 0, frameSize, frameSize);
             PlayScreen.fixBleeding(frameRegion);
             frames.add(frameRegion);
         }
 
         animations.put(State.STANDING, new Animation(animationSpeed, frames));
         frames.clear();
-
         /* Running animation
         numFrames = 1;
         frameSize = 64;
@@ -144,29 +139,29 @@ public class Slime extends Collidable {
         animations.put(State.LANDING, new Animation(animationSpeed, frames));
         frames.clear();
         */
-
         setBounds(startX, startY, frameSize / SpaceSlime.PPM, frameSize / SpaceSlime.PPM);
-        setRegion(animations.get(State.STANDING).getKeyFrame(stateTimer, false));
+        setRegion((TextureRegion) animations.get(State.STANDING).getKeyFrame(stateTimer, false));
 
-        vertTopBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), (getWidth() / 4), getHeight() / 2);
-        vertBotBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), (getWidth() / 4), 0);
-        horiLeftBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), 0, (getHeight() /4));
-        horiRightBody = new SpriteBody(new Rectangle(getX(), getY(), getWidth() / 2, getHeight() / 2), getWidth() / 2, (getHeight() / 4));
+        Shape shape = new Circle(frameSize /2, new Vector2(startX + frameSize /2, startY + frameSize /2));
+        body = new SpriteBody(this, shape, new Vector2(startX + frameSize /2, startY + frameSize /2), 0.0f, 0.01f,
+                              0.4f, new Vector2(0, 0), new Vector2(0, 0), 1.0f);
+        setOriginCenter();
     }
 
     private void jump() {
         if (onGround) {
-            yVel = ySpeed;
+            body.applyImpulse(y_speed, 1.0f, new Vector2(0.0f, 0.0f));
         }
     }
 
     private void hook() {
-        hook = new Hook(world, screen, this, getX() + 16, getY() + 16, 600.0f, 600.0f);
-        world.insertDynamic(hook);
+        hook = new Hook(world, screen, this, body.position.x + ((Circle)body.shape).radius,
+                body.position.y + ((Circle)body.shape).radius, 600.0f, 600.0f);
+        world.insertObject(hook);
     }
 
     public void removeHook() {
-        world.removeDynamic(hook);
+        world.removeObject(hook);
         hook = null;
         canHook = true;
         hooked = false;
@@ -176,29 +171,12 @@ public class Slime extends Collidable {
         if (touchInfo.touched) {
             // 1/6 of the screen width
             if (touchInfo.touchX < SpaceSlime.V_WIDTH / (6 * SpaceSlime.PPM)) {
-                if (hooked) {
-                    float dir = (float)hook.angle - 90;
-                    if (dir < 0) {
-                        dir += 360;
-                    }
-                    applyForce(dir, xSpeed);
-                } else {
-                    if (Math.abs(xVel + xSpeed) < maxXVel) {
-                        applyForce(180, xSpeed);
-                        moving = true;
-                    }
-                }
+                body.applyForce(x_speed.cpy().scl(-1.0f));
+                moving = true;
                 touchInfo.type = "move";
             } else if (touchInfo.touchX < SpaceSlime.V_WIDTH / (3 * SpaceSlime.PPM)) {
-                if (hooked) {
-                    float dir = ((float)hook.angle + 90) % 360;
-                    applyForce(dir, xSpeed);
-                } else {
-                    if (Math.abs(xVel + xSpeed) < maxXVel) {
-                        applyForce(0, xSpeed);
-                        moving = true;
-                    }
-                }
+                body.applyForce(x_speed);
+                moving = true;
                 touchInfo.type = "move";
             } else {
                 if (touchInfo.type == "") {
@@ -222,9 +200,11 @@ public class Slime extends Collidable {
                 moving = false;
                 touchInfo.type = "";
             } else if (touchInfo.type.equals("jump")) {
+                /*
                 if (yVel > 0) {
                     yVel *= 0.6;
                 }
+                */
                 touchInfo.type = "";
                 canJump = true;
             } else if (touchInfo.type.equals("hook")) {
@@ -236,97 +216,26 @@ public class Slime extends Collidable {
 
     @Override
     public void update(float dt) {
-        xAccel = 0;
-        yAccel = 0;
-        if (!moving) {
-            if (hooked) {
-                xVel *= 0.9f; //0.9f;
-                yVel *= 0.9f;
-            } else {
-                xVel *= 0.75f;
-            }
-        }
-
-        if (Math.abs(xVel) < 1) {
-           xVel = 0;
-        }
-
-        if (yVel == 0 && xVel == 0 && !moving && onGround) {
-            checkCollisions = false;
-        } else {
-            checkCollisions = true;
-        }
-
-        speed = Math.sqrt(xVel * xVel + yVel * yVel);
-
         if (hooked) {
-            float xDiff = getX() - hook.getX();
-            float yDiff = getY() - hook.getY();
-            float distance = (float)Math.sqrt((xDiff * xDiff + yDiff * yDiff));
-            if (distance > hook.length) {
-                // Move the player to the length of the rope
-                float hyp = distance - hook.length;
-                double theta = Math.atan2(yDiff, xDiff);
-                float xMove = hyp * (float)Math.cos(theta);
-                float yMove = hyp * (float)Math.sin(theta);
-                setX(getX() - xMove);
-                setY(getY() - yMove);
-                //double innerAngle = calcAngle(getX() + xVel, getX() + yVel, hook.getX(), hook.getY(), getX(), getY());
-                //double newSpeed = speed * Math.sin(innerAngle);
-                double newDir = Math.atan2(getY() - prevY, getX() - prevX);
-                xVel = (float)(speed * Math.cos(newDir));
-                yVel = (float)(speed * Math.sin(newDir));
-            }
+            // Subtract the vector component pointing away from the hook from our velocity
+            normal_vector.set((float)Math.cos(hook.angle), (float)Math.sin(hook.angle)).nor();
+            float normal_dot = normal_vector.dot(body.velocity);
+            normal_vector.scl(normal_dot);
+            body.velocity.sub(normal_vector);
         }
     }
 
     @Override
-    public void collide(ColBody type, Collidable colObj) {
-        if (colObj instanceof Ground) {
-            switch(type) {
-                case RIGHTHORI:
-                    /* Moving right */
-                    /* Move to the difference between collision overlap */
-                    setX(colObj.horiLeftBody.colBox.x - (horiRightBody.colBox.width + horiRightBody.xOffset) /*- 1*/);
-                    xVel = Math.min(0.0f, xVel);
-                    xAccel = Math.min(0.0f, xAccel);
-                    break;
-
-                case LEFTHORI:
-                    /* Moving left */
-                    /* Move to the difference between collision overlap */
-                    setX(colObj.horiRightBody.colBox.x + colObj.horiRightBody.colBox.width + horiLeftBody.xOffset /*+ 1*/);
-                    xVel = Math.max(0.0f, xVel);
-                    xAccel = Math.max(0.0f, xAccel);
-                    break;
-
-                case BOTVERT:
-                    /* Vertical collision */
-                    /* Moving down */
-                    setY(colObj.vertTopBody.colBox.y + colObj.vertTopBody.colBox.height + vertBotBody.yOffset /*+ 1*/);
-                    yVel = Math.max(0.0f, yVel);
-                    yAccel = Math.max(0.0f, yAccel);
-                    break;
-
-                case TOPVERT:
-                    /* Vertical collision */
-                    /* Moving up */
-                    setY(colObj.vertBotBody.colBox.y - (vertTopBody.colBox.height + vertTopBody.yOffset) /*- 1*/);
-                    yVel = Math.min(0.0f, yVel);
-                    yAccel = Math.min(0.0f, yAccel);
-                    break;
-            }
-        }
-        updateColBox();
+    public void updatePosition() {
+        setPosition(body.position.x - 16, body.position.y - 16);
     }
 
-    private double calcAngle(float x1, float y1, float x2, float y2, float x3, float y3) {
-        // Calc the angle between 3 points with (x1,y1) being the vertex
-        return Math.atan2(y2 - y1, x2 - x1) - Math.atan2(y3 - y1, x3 - x1);
+    @Override
+    public void collided(Manifold manifold) {
+
     }
 
     public void printStats() {
-        Gdx.app.log("player", "xAcc: " + Float.toString(xAccel) + " yAcc: " + Float.toString(yAccel) + " xvel: " + Float.toString(xVel) + " yvel: " + Float.toString(yVel));
         //Gdx.app.log("player", Float.toString(yVel));
     }
 }

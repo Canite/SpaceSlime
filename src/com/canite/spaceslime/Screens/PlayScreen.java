@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -57,8 +58,9 @@ public class PlayScreen implements Screen, InputProcessor{
     // Hash table for each touch
     private Map<Integer, TouchInfo> touches = new HashMap<Integer, TouchInfo>();
 
-    // Debug renderer
+    // Debug
     ShapeRenderer debug;
+    FPSLogger fps_logger = new FPSLogger();
 
     public PlayScreen(SpaceSlime game) {
         Gdx.app.log("started", "play screen");
@@ -237,9 +239,9 @@ public class PlayScreen implements Screen, InputProcessor{
         // debug
         debug.setProjectionMatrix(gameCam.combined);
         debug.begin(ShapeRenderer.ShapeType.Filled);
-        world.staticObjectTree.drawDebugObjects(debug, 0.0f);
+        world.objectTree.drawDebugObjects(debug, 0.0f);
         debug.setColor(0, 1, 0, 1);
-        Rectangle debugBox = world.player.horiRightBody.colBox;
+        //Rectangle debugBox = world.player.horiRightBody.colBox;
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
         //debugBox = world.player.horiLeftBody.colBox;
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
@@ -247,15 +249,17 @@ public class PlayScreen implements Screen, InputProcessor{
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
         //debugBox = world.player.vertTopBody.colBox;
         //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
-        debugBox = new Rectangle(world.player.vertBotBody.colBox.x, world.player.vertBotBody.colBox.y - 2, world.player.vertBotBody.colBox.width, 2);
-        debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
+        //debugBox = new Rectangle(world.player.vertBotBody.colBox.x, world.player.vertBotBody.colBox.y - 2, world.player.vertBotBody.colBox.width, 2);
+        //debug.rect(debugBox.x, debugBox.y, debugBox.width, debugBox.height);
         debug.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
         debug.setProjectionMatrix(gameCam.combined);
         debug.begin(ShapeRenderer.ShapeType.Line);
-        world.staticObjectTree.drawDebugQuads(debug);
+        world.objectTree.drawDebugQuads(debug);
         debug.end();
+
+        fps_logger.log();
 
         // set again for hud
         //game.batch.setProjectionMatrix();
