@@ -11,6 +11,7 @@ public abstract class GameObject extends Sprite {
     public boolean moving = false;
     public boolean canJump = false;
     public boolean onGround = false;
+    public int onGroundGrace = 10;
     public boolean applyGravity = true;
     public SpriteBody body;
     public boolean isStatic = false;

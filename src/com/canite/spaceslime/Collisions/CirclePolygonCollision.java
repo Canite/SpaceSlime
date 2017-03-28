@@ -70,6 +70,7 @@ public class CirclePolygonCollision extends Collision {
             }
 
             manifold.num_contacts = 1;
+            manifold.penetration = A.radius - circle_center.dst(vertex1);
             B.rotation_matrix.muli(manifold.normal.set(vertex1).sub(circle_center));
             manifold.normal.nor();
             B.rotation_matrix.mul(vertex1, manifold.contacts[0]);
@@ -83,6 +84,7 @@ public class CirclePolygonCollision extends Collision {
             }
 
             manifold.num_contacts = 1;
+            manifold.penetration = A.radius - circle_center.dst(vertex2);
             B.rotation_matrix.muli(manifold.normal.set(vertex2).sub(circle_center));
             manifold.normal.nor();
             B.rotation_matrix.mul(vertex2, manifold.contacts[0]);
@@ -91,14 +93,16 @@ public class CirclePolygonCollision extends Collision {
         else {
             // Closest to edge
             Vector2 edge_normal = B.normals[edge_normal_index];
+            float edge_dist = circle_center.cpy().sub(vertex1).dot(edge_normal);
 
-            if (circle_center.cpy().sub(vertex1).dot(edge_normal) > A.radius) {
+            if (edge_dist > A.radius) {
                 return;
             }
 
             manifold.num_contacts = 1;
+            manifold.penetration = A.radius - edge_dist;
             B.rotation_matrix.mul(edge_normal, manifold.normal);
-            manifold.normal.scl(-1.0f);
+            manifold.normal.scl(-1.0f).nor();
             manifold.contacts[0].set( a.position ).mulAdd(manifold.normal, A.radius);
         }
     }

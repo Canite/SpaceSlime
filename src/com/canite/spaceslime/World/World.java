@@ -1,5 +1,6 @@
 package com.canite.spaceslime.World;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -25,14 +26,16 @@ import com.canite.spaceslime.Tools.QuadTree;
 
 public class World {
     private Array<GameObject> objects;
+    private Rectangle worldBounds;
+
     public Array<Manifold> collisions;
     public QuadTree objectTree;
-    private Rectangle worldBounds;
     public Array<GameObject> dynamic_objects;
+    public int onGroundGraceMax = 10;
 
     public Slime player;
 
-    private Vector2 GRAVITY = new Vector2(0.0f, -600.0f);
+    private Vector2 GRAVITY = new Vector2(0.0f, -800.0f);
 
     public World(int width, int height) {
         worldBounds = new Rectangle(0, 0, width, height);
@@ -53,6 +56,9 @@ public class World {
 
     public void removeObject(GameObject obj) {
         objects.removeValue(obj, true);
+        if (dynamic_objects.contains(obj, true)) {
+            dynamic_objects.removeValue(obj, true);
+        }
     }
 
     public void update(float dt) {
@@ -64,7 +70,13 @@ public class World {
         /* First, regenerate the collision tree */
         /* BROAD PHASE */
         for (GameObject obj : objects) {
-            obj.onGround = false; // This will be reset later
+            obj.onGround = false;
+            if (obj.onGroundGrace > 0) {
+                obj.onGroundGrace -= 1;
+            }
+            else {
+                obj.canJump = false; // This will be reset later
+            }
             objectTree.insert(obj);
         }
 
@@ -97,10 +109,20 @@ public class World {
 
         /* Correct positions */
         for (Manifold collision: collisions) {
-
-            if (collision.B.parent instanceof Ground) {
-                if (collision.normal.angle() > 195 && collision.normal.angle() < 345) {
+            collision.correctPosition();
+            if (collision.num_contacts > 0 && collision.contact_velocity <= 0.0f) {
+                //Gdx.app.log("world", Float.toString(collision.normal.angle()));
+                if (collision.B.parent instanceof Ground &&
+                        collision.normal.angle() > 195 && collision.normal.angle() < 345) {
+                    collision.A.parent.onGroundGrace = onGroundGraceMax;
                     collision.A.parent.onGround = true;
+                    collision.A.parent.canJump = true;
+                }
+                else if (collision.A.parent instanceof Ground &&
+                        collision.normal.angle() > 15 && collision.normal.angle() < 165) {
+                    collision.B.parent.onGroundGrace = onGroundGraceMax;
+                    collision.B.parent.onGround = true;
+                    collision.B.parent.canJump = true;
                 }
             }
         }
@@ -136,7 +158,9 @@ public class World {
         float dts = dt * 0.5f;
 
         body.velocity.mulAdd(body.force, body.mass_data.inv_mass * dts);
-        body.velocity.mulAdd(GRAVITY, dts * body.gravity_scale);
+        if (!body.parent.onGround && body.velocity.y > -450.0f) {
+            body.velocity.mulAdd(GRAVITY, dts * body.gravity_scale);
+        }
         //body.angular_velocity += body.torque * body.mass_data.inv_inertia * dts;
     }
 

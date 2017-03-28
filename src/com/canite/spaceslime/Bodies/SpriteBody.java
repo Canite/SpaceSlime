@@ -26,7 +26,7 @@ public class SpriteBody {
         this.shape = shape;
         this.position = new Vector2(position);
         this.rotation = rotation;
-        this.material = new Material(density, restitution, 0.5f, 0.3f);
+        this.material = new Material(density, restitution, 0.2f, 0.1f);
         this.mass_data = new MassData(this.shape.CalcMass(density), 0.0f);
         this.velocity = new Vector2(velocity);
         this.force = new Vector2(force);

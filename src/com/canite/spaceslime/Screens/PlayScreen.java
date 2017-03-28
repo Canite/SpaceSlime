@@ -16,6 +16,7 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -177,7 +178,7 @@ public class PlayScreen implements Screen, InputProcessor{
 
     @Override
     public boolean touchDragged(int screenX, int screenY, int pointer) {
-        if (pointer < 5  && touches.get(pointer).type.equals("move") && screenX < SpaceSlime.V_WIDTH / (3*SpaceSlime.PPM)) {
+        if (pointer < 5  && touches.get(pointer).type.equals("move") && screenX < Gdx.graphics.getWidth() / 3) {
             touches.get(pointer).touchX = screenX;
             touches.get(pointer).touchY = screenY;
             touches.get(pointer).touched = true;
@@ -256,7 +257,22 @@ public class PlayScreen implements Screen, InputProcessor{
 
         debug.setProjectionMatrix(gameCam.combined);
         debug.begin(ShapeRenderer.ShapeType.Line);
-        world.objectTree.drawDebugQuads(debug);
+        debug.rect(gameCam.position.x - SpaceSlime.V_WIDTH / 2 + 1,
+                   gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + 1,
+                   SpaceSlime.V_WIDTH / 6, SpaceSlime.V_HEIGHT / 6);
+
+        debug.rect(gameCam.position.x - SpaceSlime.V_WIDTH / 2 + SpaceSlime.V_WIDTH / 6 + 1,
+                   gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + 1,
+                   SpaceSlime.V_WIDTH / 6, SpaceSlime.V_HEIGHT / 6);
+
+        debug.rect(gameCam.position.x + SpaceSlime.V_WIDTH / 2 - SpaceSlime.V_WIDTH / 6 - 1,
+                   gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + 1,
+                   SpaceSlime.V_WIDTH / 6, SpaceSlime.V_HEIGHT / 6);
+
+        debug.arc(gameCam.position.x + SpaceSlime.V_WIDTH / 2 - SpaceSlime.V_WIDTH / 10 - 1,
+                  gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + SpaceSlime.V_HEIGHT / 6,
+                  SpaceSlime.V_WIDTH / 10, 0, 180);
+        //world.objectTree.drawDebugQuads(debug);
         debug.end();
 
         fps_logger.log();

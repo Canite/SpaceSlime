@@ -1,7 +1,9 @@
 package com.canite.spaceslime.Sprites;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.canite.spaceslime.Bodies.SpriteBody;
@@ -18,18 +20,21 @@ import java.util.HashMap;
  * Created by Austin on 2/7/2016.
  */
 public class Slime extends GameObject {
-    public enum State {FALLING, JUMPING, LANDING, STANDING, RUNNING, HOOKING}
-    public State currentState, previousState;
     private HashMap<State, Animation> animations;
     private World world;
     private PlayScreen screen;
     private float stateTimer;
     private Vector2 x_speed;
     private Vector2 y_speed;
+    private float max_xSpeed;
+    private float max_ySpeed;
     private boolean canHook;
-    public boolean hooked;
     private Vector2 normal_vector = new Vector2();
     private Hook hook;
+
+    public enum State {FALLING, JUMPING, LANDING, STANDING, RUNNING, HOOKING}
+    public State currentState, previousState;
+    public boolean hooked;
 
     public Slime(World world, PlayScreen screen, int startX, int startY) {
         this.world = world;
@@ -37,11 +42,13 @@ public class Slime extends GameObject {
         stateTimer = 0;
         currentState = State.STANDING;
         previousState = State.STANDING;
-        x_speed = new Vector2(1200.0f, 0.0f);
+        x_speed = new Vector2(3500.0f, 0.0f);
         y_speed = new Vector2(0.0f, 400.0f);
+        max_xSpeed = 700.0f;
         canJump = true;
         canHook = true;
         hooked = false;
+        isStatic = false;
 
         /* Initialize sprites */
         animations = new HashMap<State, Animation>();
@@ -149,49 +156,61 @@ public class Slime extends GameObject {
     }
 
     private void jump() {
-        if (onGround) {
-            body.applyImpulse(y_speed, 1.0f, new Vector2(0.0f, 0.0f));
-        }
+        body.applyImpulse(y_speed, 1.0f, new Vector2(0.0f, 0.0f));
     }
 
-    private void hook() {
-        hook = new Hook(world, screen, this, body.position.x + ((Circle)body.shape).radius,
-                body.position.y + ((Circle)body.shape).radius, 600.0f, 600.0f);
+    private void hook(float angle) {
+        Vector2 hook_velocity = new Vector2(600.0f, 600.0f);
+        hook_velocity.setAngle(angle);
+        hook = new Hook(world, screen, this, body.position.x,
+                body.position.y + ((Circle)body.shape).radius, hook_velocity);
         world.insertObject(hook);
     }
 
     public void removeHook() {
         world.removeObject(hook);
         hook = null;
-        canHook = true;
         hooked = false;
     }
 
     public void handleInput(PlayScreen.TouchInfo touchInfo) {
         if (touchInfo.touched) {
             // 1/6 of the screen width
-            if (touchInfo.touchX < SpaceSlime.V_WIDTH / (6 * SpaceSlime.PPM)) {
-                body.applyForce(x_speed.cpy().scl(-1.0f));
+            if (touchInfo.touchX < Gdx.graphics.getWidth() / 6 &&
+                    touchInfo.touchY > Gdx.graphics.getHeight() - Gdx.graphics.getHeight() / 6) {
+
+                if (body.velocity.x > -max_xSpeed) {
+                    body.applyForce(x_speed.cpy().scl(-1.0f));
+                }
                 moving = true;
                 touchInfo.type = "move";
-            } else if (touchInfo.touchX < SpaceSlime.V_WIDTH / (3 * SpaceSlime.PPM)) {
-                body.applyForce(x_speed);
+            } else if (touchInfo.touchX < Gdx.graphics.getWidth()  / 3 &&
+                    touchInfo.touchX > Gdx.graphics.getWidth() / 6 &&
+                    touchInfo.touchY > Gdx.graphics.getHeight() - Gdx.graphics.getHeight() / 6) {
+
+                if (body.velocity.x < max_xSpeed) {
+                    body.applyForce(x_speed);
+                }
                 moving = true;
                 touchInfo.type = "move";
-            } else {
+            } else if (touchInfo.touchX > (Gdx.graphics.getWidth() * 5) / 6 &&
+                       touchInfo.touchY > Gdx.graphics.getHeight() - Gdx.graphics.getHeight() / 6) {
                 if (touchInfo.type == "") {
-                    if (onGround) {
-                        if (canJump) {
-                            canJump = false;
-                            jump();
-                            touchInfo.type = "jump";
-                        }
-                    } else {
-                        if (canHook) {
-                            canHook = false;
-                            hook();
-                            touchInfo.type = "hook";
-                        }
+                    if (canJump) {
+                        canJump = false;
+                        jump();
+                        touchInfo.type = "jump";
+                    }
+                }
+            } else {
+                if (canHook) {
+                    float radius = (Gdx.graphics.getWidth() / 10) * (Gdx.graphics.getWidth() / 10);
+                    Vector2 center = new Vector2((Gdx.graphics.getWidth() * 9) / 10, (Gdx.graphics.getHeight() * 5) / 6);
+                    if (touchInfo.touchY < center.y && center.dst2(touchInfo.touchX, touchInfo.touchY) < radius) {
+                        canHook = false;
+                        float angle = MathUtils.clamp(180.0f - center.sub(touchInfo.touchX, touchInfo.touchY).angle(), 45.0f, 135.0f);
+                        hook(angle);
+                        touchInfo.type = "hook";
                     }
                 }
             }
@@ -200,15 +219,15 @@ public class Slime extends GameObject {
                 moving = false;
                 touchInfo.type = "";
             } else if (touchInfo.type.equals("jump")) {
-                /*
-                if (yVel > 0) {
-                    yVel *= 0.6;
+                // Slow the jump if we're still going up
+                if (body.velocity.y > 0) {
+                    body.velocity.scl(1.0f, 0.6f);
                 }
-                */
                 touchInfo.type = "";
-                canJump = true;
+                //canJump = true;
             } else if (touchInfo.type.equals("hook")) {
                 removeHook();
+                canHook = true;
                 touchInfo.type = "";
             }
         }
@@ -216,23 +235,27 @@ public class Slime extends GameObject {
 
     @Override
     public void update(float dt) {
+        Gdx.app.log("player", body.velocity.toString());
         if (hooked) {
+            float angle = hook.body.position.cpy().sub(body.position).angleRad();
             // Subtract the vector component pointing away from the hook from our velocity
-            normal_vector.set((float)Math.cos(hook.angle), (float)Math.sin(hook.angle)).nor();
+            normal_vector.set((float)Math.cos(angle), (float)Math.sin(angle)).nor();
             float normal_dot = normal_vector.dot(body.velocity);
-            normal_vector.scl(normal_dot);
-            body.velocity.sub(normal_vector);
+            //normal_vector.scl(normal_dot);
+            body.velocity.sub(normal_vector.cpy().scl(normal_dot));
+            if (body.position.dst2(hook.body.position) > hook.minDistance) {
+                body.velocity.add(normal_vector.scl(8.0f));
+            }
         }
     }
 
     @Override
     public void updatePosition() {
-        setPosition(body.position.x - 16, body.position.y - 16);
+        setPosition(body.shape.position.x - ((Circle)body.shape).radius, body.shape.position.y - ((Circle)body.shape).radius);
     }
 
     @Override
     public void collided(Manifold manifold) {
-
     }
 
     public void printStats() {
