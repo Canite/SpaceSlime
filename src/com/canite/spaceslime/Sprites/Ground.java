@@ -31,6 +31,11 @@ public class Ground extends GameObject {
     }
 
     @Override
+    public void updateRotation() {
+    }
+
+
+    @Override
     public void collided(Manifold manifold) {
 
     }

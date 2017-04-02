@@ -17,5 +17,6 @@ public abstract class GameObject extends Sprite {
     public boolean isStatic = false;
     public abstract void update(float dt);
     public abstract void updatePosition();
+    public abstract void updateRotation();
     public abstract void collided(Manifold manifold);
 }

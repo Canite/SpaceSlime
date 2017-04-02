@@ -1,6 +1,7 @@
 package com.canite.spaceslime.Tools;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.math.Vector;
 import com.badlogic.gdx.math.Vector2;
 import com.canite.spaceslime.Bodies.SpriteBody;
 import com.canite.spaceslime.Collisions.CollisionDispatcher;
@@ -44,11 +45,13 @@ public class Manifold {
 
         for (int i = 0; i < num_contacts; i++) {
             // Radius to center of mass
-            //Vector2 a_rad = contacts[i].cpy().sub(A.position);
-            //Vector2 b_rad = contacts[i].cpy().sub(B.position);
+            Vector2 a_rad = contacts[i].cpy().sub(A.position);
+            Vector2 b_rad = contacts[i].cpy().sub(B.position);
 
             // Velocity vector
-            Vector2 velocity = A.velocity.cpy().sub(B.velocity);
+            Vector2 b_cross = new Vector2(b_rad.y * -B.angular_velocity, b_rad.x * B.angular_velocity);
+            Vector2 a_cross = new Vector2(a_rad.y * -A.angular_velocity, a_rad.x * A.angular_velocity);
+            Vector2 velocity = B.velocity.cpy().add(b_cross).sub(A.velocity).sub(a_cross);
             float resting_velocity = new Vector2(0.0f, -800.0f).scl(1.0f / Gdx.graphics.getFramesPerSecond()).len2() + 0.0001f;
             if (velocity.len2() < resting_velocity) {
                 restitution = 0.0f;
@@ -74,7 +77,12 @@ public class Manifold {
             Vector2 a_rad = contacts[i].cpy().sub(A.position);
             Vector2 b_rad = contacts[i].cpy().sub(B.position);
 
-            Vector2 velocity = B.velocity.cpy().sub(A.velocity);
+            Vector2 b_cross = new Vector2(b_rad.y * -B.angular_velocity, b_rad.x * B.angular_velocity);
+            Vector2 a_cross = new Vector2(a_rad.y * -A.angular_velocity, a_rad.x * A.angular_velocity);
+            //Vector2 a_cross = new Vector2(0,0);
+            //Vector2 b_cross = new Vector2(0,0);
+            Vector2 velocity = B.velocity.cpy().add(b_cross).sub(A.velocity).sub(a_cross);
+            //Vector2 velocity = B.velocity.cpy().sub(A.velocity);
             // Velocity along the normal
             contact_velocity = velocity.dot(normal);
 
@@ -84,14 +92,18 @@ public class Manifold {
                 return;
             }
 
-            float inv_mass_sum = A.mass_data.inv_mass + B.mass_data.inv_mass;
+            float a_cross_n = a_rad.crs(normal);
+            float b_cross_n = b_rad.crs(normal);
+            float inv_mass_sum = A.mass_data.inv_mass + B.mass_data.inv_mass + (a_cross_n * b_cross_n) * A.mass_data.inv_inertia
+                                 + (b_cross_n * a_cross_n) * B.mass_data.inv_inertia;
+
             float impulse_scalar;
-            if (contact_velocity == 0) {
-                impulse_scalar = -(1.0f + restitution) * penetration;
-            }
-            else {
+            //if (contact_velocity == 0) {
+            //    impulse_scalar = -(1.0f + restitution) * penetration;
+            //}
+            //else {
                 impulse_scalar = -(1.0f + restitution) * contact_velocity;
-            }
+            //}
             impulse_scalar /= inv_mass_sum;
             impulse_scalar /= num_contacts;
 
@@ -100,12 +112,14 @@ public class Manifold {
             B.applyImpulse(impulse, B.mass_data.inv_mass, b_rad);
 
             // Friction
+            //Vector2 tangent = normal.cpy();
             Vector2 tangent = velocity.cpy();
             tangent.mulAdd(normal, -velocity.dot(normal));
             tangent.nor();
+            //tangent.rotate90(-1);
 
             // Tangent scalar impulse
-            float tangent_scalar = -velocity.dot(tangent) * 0.75f;
+            float tangent_scalar = -velocity.dot(tangent);
             tangent_scalar /= inv_mass_sum;
             tangent_scalar /= num_contacts;
 
@@ -120,6 +134,7 @@ public class Manifold {
             }
             else {
                 tangent_impulse = tangent.cpy().scl(-dyn_friction * impulse_scalar);
+                Gdx.app.log("manifold", tangent_impulse.toString());
             }
 
             A.applyImpulse(tangent_impulse, -A.mass_data.inv_mass, a_rad);

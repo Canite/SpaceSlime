@@ -3,6 +3,7 @@ package com.canite.spaceslime.Sprites;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.canite.spaceslime.Bodies.SpriteBody;
@@ -80,6 +81,12 @@ public class Hook extends GameObject {
     public void updatePosition() {
         setPosition(body.shape.position.x - ((Circle)body.shape).radius, body.shape.position.y - ((Circle)body.shape).radius);
     }
+
+    @Override
+    public void updateRotation() {
+        setRotation(MathUtils.radiansToDegrees * body.rotation);
+    }
+
 
     @Override
     public void collided(Manifold manifold) {

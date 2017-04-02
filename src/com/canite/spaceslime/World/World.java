@@ -87,6 +87,7 @@ public class World {
             if (!obj.isStatic) {
                 integrateForces(obj.body, dt);
             }
+            obj.body.torque = 0;
         }
 
         /* Initialize collisions */
@@ -130,12 +131,12 @@ public class World {
         /* Apply new positions to sprites */
         for (GameObject obj: objects) {
             obj.updatePosition();
+            obj.updateRotation();
         }
 
         /* Clear forces */
         for (GameObject obj: objects) {
             obj.body.force.set(0, 0);
-            //obj.body.torque = 0;
         }
     }
 
@@ -158,18 +159,22 @@ public class World {
         float dts = dt * 0.5f;
 
         body.velocity.mulAdd(body.force, body.mass_data.inv_mass * dts);
-        if (!body.parent.onGround && body.velocity.y > -450.0f) {
+        if (/*!body.parent.onGround &&*/ body.velocity.y > -450.0f) {
             body.velocity.mulAdd(GRAVITY, dts * body.gravity_scale);
         }
-        //body.angular_velocity += body.torque * body.mass_data.inv_inertia * dts;
+        float torque_add = body.torque * body.mass_data.inv_inertia * dts;
+        body.angular_velocity += torque_add;
     }
 
     public void integrateVelocity(GameObject obj, float dt) {
         dt = 1.0f/64.0f;
 
         obj.body.position.mulAdd(obj.body.velocity, dt);
-        obj.body.shape.UpdatePosition(obj.body.position);
 
+        obj.body.rotation += obj.body.angular_velocity * dt;
+        obj.body.setRotation(obj.body.rotation);
+
+        obj.body.shape.UpdatePosition(obj.body.position);
         integrateForces(obj.body, dt);
     }
 }

@@ -48,6 +48,16 @@ public class Polygon extends Shape {
     }
 
     @Override
+    public float CalcInertia(float mass) {
+        return 0.0f;
+    }
+
+    @Override
     public void UpdatePosition(Vector2 pos) {
+    }
+
+    @Override
+    public void setRotation(float rot) {
+        rotation_matrix.set(rot);
     }
 }

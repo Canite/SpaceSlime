@@ -42,7 +42,7 @@ public class Slime extends GameObject {
         stateTimer = 0;
         currentState = State.STANDING;
         previousState = State.STANDING;
-        x_speed = new Vector2(3500.0f, 0.0f);
+        x_speed = new Vector2(4500.0f, 0.0f);
         y_speed = new Vector2(0.0f, 400.0f);
         max_xSpeed = 700.0f;
         canJump = true;
@@ -204,8 +204,8 @@ public class Slime extends GameObject {
                 }
             } else {
                 if (canHook) {
-                    float radius = (Gdx.graphics.getWidth() / 10) * (Gdx.graphics.getWidth() / 10);
-                    Vector2 center = new Vector2((Gdx.graphics.getWidth() * 9) / 10, (Gdx.graphics.getHeight() * 5) / 6);
+                    float radius = (Gdx.graphics.getWidth() / 8) * (Gdx.graphics.getWidth() / 8);
+                    Vector2 center = new Vector2((Gdx.graphics.getWidth() * 7) / 8, (Gdx.graphics.getHeight() * 5) / 6);
                     if (touchInfo.touchY < center.y && center.dst2(touchInfo.touchX, touchInfo.touchY) < radius) {
                         canHook = false;
                         float angle = MathUtils.clamp(180.0f - center.sub(touchInfo.touchX, touchInfo.touchY).angle(), 45.0f, 135.0f);
@@ -235,7 +235,7 @@ public class Slime extends GameObject {
 
     @Override
     public void update(float dt) {
-        Gdx.app.log("player", body.velocity.toString());
+        //Gdx.app.log("player", body.velocity.toString());
         if (hooked) {
             float angle = hook.body.position.cpy().sub(body.position).angleRad();
             // Subtract the vector component pointing away from the hook from our velocity
@@ -255,7 +255,15 @@ public class Slime extends GameObject {
     }
 
     @Override
+    public void updateRotation() {
+        setRotation(MathUtils.radiansToDegrees * body.rotation);
+    }
+
+    @Override
     public void collided(Manifold manifold) {
+        if ((manifold.A.parent instanceof Ground || manifold.B.parent instanceof Ground) && !moving) {
+            body.angular_velocity *= 0.95f;
+        }
     }
 
     public void printStats() {

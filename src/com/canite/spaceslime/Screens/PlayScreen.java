@@ -269,9 +269,9 @@ public class PlayScreen implements Screen, InputProcessor{
                    gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + 1,
                    SpaceSlime.V_WIDTH / 6, SpaceSlime.V_HEIGHT / 6);
 
-        debug.arc(gameCam.position.x + SpaceSlime.V_WIDTH / 2 - SpaceSlime.V_WIDTH / 10 - 1,
+        debug.arc(gameCam.position.x + SpaceSlime.V_WIDTH / 2 - SpaceSlime.V_WIDTH / 8 - 1,
                   gameCam.position.y - SpaceSlime.V_HEIGHT / 2 + SpaceSlime.V_HEIGHT / 6,
-                  SpaceSlime.V_WIDTH / 10, 0, 180);
+                  SpaceSlime.V_WIDTH / 8, 0, 180);
         //world.objectTree.drawDebugQuads(debug);
         debug.end();
 
